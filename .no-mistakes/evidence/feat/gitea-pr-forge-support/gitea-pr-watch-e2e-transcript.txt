@@ -1,0 +1,30 @@
+=== 1. Arm a Gitea watch via the real bin/fm-pr-check.sh ===
+$ fm-pr-check.sh task-demo https://gitea.example/group/project/pulls/7
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  This read-only session should report the lapse, not repair it.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  Watcher repair belongs to the session holding the fleet lock; do not drain, arm, or repair from this read-only session.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+jq: parse error: Invalid numeric literal at line 1, column 5
+armed: state/task-demo.check.sh
+
+=== 2. Gitea sidecar recorded by the arm step (state/task-demo.pr-poll) ===
+gitea
+https://gitea.example/group/project/pulls/7
+gitea.example
+group/project
+7
+
+=== 3. Poll while the pull request is still open (tea reports hasMerged:false) ===
+poll stdout: ''  (expected: empty = stays silent)
+
+=== 4. Poll after the pull request merges (tea reports hasMerged:true) ===
+poll stdout: 'merged'  (expected: merged = wakes firstmate)
+
+=== 5. Exact tea invocations made by the real poll subprocess (single-lookup, no pagination) ===
+logins list --output tsv
+pulls 7 --login fm-gitea --repo group/project --output json
+logins list --output tsv
+pulls 7 --login fm-gitea --repo group/project --output json
