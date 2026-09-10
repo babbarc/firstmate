@@ -116,4 +116,26 @@ printf '%s\n' "$show" | grep -q 'links: "pr:https://github.com/babbarc/server-op
   || fail "a GitHub PR URL lost its structured link: $show"
 pass "fm_backlog_done keeps a GitHub PR URL in the structured link field"
 
+# --- the config dir is optional -------------------------------------------
+#
+# bin/fm-captain-hold.sh predates the fleet Gitea patch and calls the validator
+# with four args under `set -u`. That must not be `$5: unbound variable`, and
+# without a config dir a plain-http Gitea link has no allow-list to check
+# against, so it is rejected rather than accepted.
+
+stage_pr 'http://alps:3222'$'\n' 'http://alps:3222/babbarc/server-ops/pulls/1' \
+  || fail "could not stage the allow-listed plain-http marker for the optional-config check"
+
+if fm_backlog_close_marker_validate "$MARKER" "$FM_HOME/data" probe "$FM_HOME/state"; then
+  fail "a four-arg validate accepted a plain-http Gitea marker with no allow-list config"
+fi
+[ -n "$FM_BACKLOG_TRANSITION_ERROR" ] \
+  || fail "the four-arg validate rejected the plain-http marker without setting an error"
+pass "fm_backlog_close_marker_validate tolerates a missing config dir and rejects a plain-http Gitea link without it"
+
+if ! fm_backlog_close_marker_validate "$MARKER" "$FM_HOME/data" probe "$FM_HOME/state" "$FM_HOME/config"; then
+  fail "a five-arg validate with the allow-list config rejected its own staged marker: $FM_BACKLOG_TRANSITION_ERROR"
+fi
+pass "fm_backlog_close_marker_validate still accepts the allow-listed plain-http Gitea link when the config dir is passed"
+
 echo "# fm-backlog-transition-lib.test.sh: all assertions passed"
