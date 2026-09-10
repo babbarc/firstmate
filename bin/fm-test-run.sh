@@ -1432,7 +1432,11 @@ families_for_changed_path() {
     docs/configuration.md|docs/supervision-protocols/*)
       printf '%s\n' pure-contract-unit
       ;;
-    tests/lib.sh|tests/*-helpers.sh|tests/fixtures.sh)
+    # tests/*-fixture.sh are shared sourced helpers like tests/*-helpers.sh and
+    # resolve by basename to their consuming suites. Upstream #4041 added
+    # tests/herdr-client-pair-fixture.sh and touched tests/remote-herdr-fixture.sh
+    # without this mapping; candidate to upstream so the fleet delta collapses.
+    tests/lib.sh|tests/*-helpers.sh|tests/*-fixture.sh|tests/fixtures.sh)
       families_for_test_reference "$(basename "$path")" \
         || printf '%s\n' "__unmapped__:$path"
       ;;
