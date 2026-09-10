@@ -868,8 +868,13 @@ fm_backlog_close_marker_path() {  # <state-dir> <id>
   printf '%s/%s.backlog-close\n' "$1" "$2"
 }
 
-fm_backlog_close_marker_validate() {  # <marker-path> <authorized-data-dir> <expected-id> <state-dir> <config-dir>
-  local marker=$1 authorized_data data_resolved expected_id=$3 state=$4 config_dir=$5
+fm_backlog_close_marker_validate() {  # <marker-path> <authorized-data-dir> <expected-id> <state-dir> [config-dir]
+  # Fleet patch: the config dir is optional. It is consulted only for a
+  # plain-http Gitea/Forgejo `--pr` link (the allow-list read below); an absent
+  # config dir means such a link is rejected for want of the allow-list, while
+  # https links and every non-PR marker are unaffected. Upstream callers that
+  # predate this patch (bin/fm-captain-hold.sh) pass four args under `set -u`.
+  local marker=$1 authorized_data data_resolved expected_id=$3 state=$4 config_dir=${5:-}
   local id='' data='' marker_spawn_gen='' cleanup_incomplete=0 mode=close line raw_bytes arg_value
   local url_tail url_authority url_path url_host url_port host_rest host_label host_valid
   local percent_tail percent_valid
