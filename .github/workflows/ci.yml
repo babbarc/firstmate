@@ -49,7 +49,8 @@ jobs:
     runs-on: ubuntu-latest
     # Measured shard wall is ~1 min of serial sum on proven scripts; this cap is
     # a hang tripwire with margin, not the expected healthy end of the lane.
-    timeout-minutes: 10
+    # Fleet: raised from 10 to 20 because upstream #3710 grew tests/fm-captain-hold-lifecycle.test.sh without rebalancing list_portable_parallel_1; fleet stopgap, candidate to upstream.
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v6
         with:
