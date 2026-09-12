@@ -1551,7 +1551,9 @@ families_for_changed_path() {
     # tests/remote-herdr-fixture.sh is a shared sourced helper like
     # tests/*-helpers.sh and resolves by basename to its consuming suites.
     # tests/herdr-client-pair-fixture.sh has its own upstream mapping above.
-    tests/lib.sh|tests/*-helpers.sh|tests/*-fixture.sh|tests/fixtures.sh)
+    # A test asset (tests/assets/*) resolves the same way, to whichever suite
+    # names it.
+    tests/lib.sh|tests/*-helpers.sh|tests/*-fixture.sh|tests/fixtures.sh|tests/assets/*)
       families_for_test_reference "$(basename "$path")" \
         || printf '%s\n' "__unmapped__:$path"
       ;;
