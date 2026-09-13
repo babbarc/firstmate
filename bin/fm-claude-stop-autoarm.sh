@@ -70,8 +70,13 @@
 set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-FM_ROOT="${FM_ROOT_OVERRIDE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
-FM_HOME="${FM_HOME:-${FM_ROOT_OVERRIDE:-$FM_ROOT}}"
+FM_OWN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+# shellcheck source=bin/fm-home-lib.sh
+. "$SCRIPT_DIR/fm-home-lib.sh"
+fm_home_correct "$FM_OWN_ROOT" "${FM_HOME:-${FM_ROOT_OVERRIDE:-}}" "${FM_ROOT_OVERRIDE:-}"
+FM_HOME=$FM_HOME_RESOLVED
+FM_ROOT=$FM_ROOT_RESOLVED
+export FM_HOME FM_ROOT
 STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
 CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 OWNER_LOCK="$STATE/.claude-autoarm.lock"

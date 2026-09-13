@@ -136,6 +136,7 @@ test_opencode_plugin_delivers_exact_nudge_once() {
   make_primary "$root"
   cp "$ROOT/bin/fm-sessionstart-nudge.sh" "$ROOT/bin/fm-primary-scope-lib.sh" \
     "$ROOT/bin/fm-gate-refuse-lib.sh" "$ROOT/bin/fm-operational-input.sh" "$root/bin/"
+  cp "$ROOT/bin/fm-home-lib.sh" "$root/bin/fm-home-lib.sh"
   chmod +x "$root/bin/fm-sessionstart-nudge.sh"
   out=$(PLUGIN="$ROOT/.opencode/plugins/fm-primary-sessionstart-nudge.js" \
     WORKTREE="$root" EXPECTED="$NUDGE_LINE" node --input-type=module 2>&1 <<'EOF'
@@ -332,6 +333,7 @@ test_pi_startup_classifies_cli_continuations() {
   cp "$ROOT/.pi/extensions/fm-primary-turnend-guard.ts" "$fixture/.pi/extensions/"
   cp "$ROOT/.pi/extensions/lib/fm-operational-input.ts" \
     "$ROOT/.pi/extensions/lib/fm-sessionstart-supervisor.mjs" "$fixture/.pi/extensions/lib/"
+  cp "$ROOT/.pi/extensions/lib/fm-home-resolve.ts" "$fixture/.pi/extensions/lib/fm-home-resolve.ts"
   cat > "$fixture/bin/fm-sessionstart-run.sh" <<'SH'
 #!/usr/bin/env bash
 source_name=
@@ -430,6 +432,7 @@ test_pi_sessionstart_generation_prerequisite() {
   cp "$ROOT/.pi/extensions/fm-primary-turnend-guard.ts" "$fixture/.pi/extensions/"
   cp "$ROOT/.pi/extensions/lib/fm-operational-input.ts" \
     "$ROOT/.pi/extensions/lib/fm-sessionstart-supervisor.mjs" "$fixture/.pi/extensions/lib/"
+  cp "$ROOT/.pi/extensions/lib/fm-home-resolve.ts" "$fixture/.pi/extensions/lib/fm-home-resolve.ts"
   cp "$ROOT/bin/fm-operational-input.sh" "$fixture/bin/"
   cat > "$fixture/bin/fm-turnend-guard.sh" <<'SH'
 #!/usr/bin/env bash
@@ -756,6 +759,7 @@ test_pi_reload_releases_sessionstart_exit_listener() {
   cp "$ROOT/.pi/extensions/fm-primary-turnend-guard.ts" "$fixture/.pi/extensions/"
   cp "$ROOT/.pi/extensions/lib/fm-operational-input.ts" \
     "$ROOT/.pi/extensions/lib/fm-sessionstart-supervisor.mjs" "$fixture/.pi/extensions/lib/"
+  cp "$ROOT/.pi/extensions/lib/fm-home-resolve.ts" "$fixture/.pi/extensions/lib/fm-home-resolve.ts"
   cp "$ROOT/bin/fm-operational-input.sh" "$fixture/bin/"
   cat > "$fixture/bin/fm-turnend-guard.sh" <<'SH'
 #!/usr/bin/env bash
@@ -890,10 +894,12 @@ test_pi_large_sessionstart_digest_is_delivered_loudly() {
   cp "$ROOT/.pi/extensions/fm-primary-turnend-guard.ts" "$fixture/.pi/extensions/"
   cp "$ROOT/.pi/extensions/lib/fm-operational-input.ts" \
     "$ROOT/.pi/extensions/lib/fm-sessionstart-supervisor.mjs" "$fixture/.pi/extensions/lib/"
+  cp "$ROOT/.pi/extensions/lib/fm-home-resolve.ts" "$fixture/.pi/extensions/lib/fm-home-resolve.ts"
   cp "$ROOT/bin/fm-sessionstart-run.sh" "$ROOT/bin/fm-sessionstart-nudge.sh" \
     "$ROOT/bin/fm-primary-scope-lib.sh" "$ROOT/bin/fm-gate-refuse-lib.sh" \
     "$ROOT/bin/fm-hook-host-lib.sh" \
     "$ROOT/bin/fm-operational-input.sh" "$fixture/bin/"
+  cp "$ROOT/bin/fm-home-lib.sh" "$fixture/bin/fm-home-lib.sh"
   cat > "$fixture/bin/fm-session-start.sh" <<'SH'
 #!/usr/bin/env bash
 printf 'PI_LARGE_DIGEST_PREFIX\n'
@@ -933,14 +939,29 @@ JS
   pass "Pi retains a bounded digest prefix and loudly marks oversized preflight delivery"
 }
 
-test_run_resume_delegates_to_the_nudge() {
-  local root="$TMP_ROOT/run-resume" out status=0
+test_run_resume_without_owned_lock_takes_the_helm() {
+  local root="$TMP_ROOT/run-resume-unowned" out status=0
   make_run_primary "$root"
   out=$(run_hook "$root" --source resume </dev/null) || status=$?
-  expect_code 0 "$status" "run wrapper resume"
-  [ "$out" = "$NUDGE_LINE" ] || fail "resume did not delegate to the exact nudge line, got: $out"
-  assert_absent "$root/state/.lock" "resume acquired the fleet lock instead of delegating"
-  pass "run wrapper: resume delegates to the nudge instead of re-running the digest"
+  expect_code 0 "$status" "run wrapper resume without an owned lock"
+  assert_contains "$out" "$FULL_BANNER$root" \
+    "a resume whose lock this session does not own did not take the helm"
+  assert_not_contains "$out" "$NUDGE_LINE" \
+    "a resumed session with no owned lock was left to an advisory nudge"
+  assert_present "$root/state/.lock" "the recovered resume never acquired the fleet lock"
+  pass "run wrapper: a resume with no owned lock takes the helm instead of nudging"
+}
+
+test_run_resume_with_owned_lock_delegates_to_the_nudge() {
+  local root="$TMP_ROOT/run-resume-owned" out status=0
+  make_run_primary "$root"
+  # Take the helm once so the fixture harness ancestry owns the lock, then
+  # resume as the same owning session.
+  run_hook "$root" --source startup </dev/null >/dev/null
+  out=$(run_hook "$root" --source resume </dev/null) || status=$?
+  expect_code 0 "$status" "run wrapper resume with an owned lock"
+  [ -z "$out" ] || fail "an owned resume should stay silent (the delegated nudge is quiet), got: $out"
+  pass "run wrapper: a resume that still owns the lock stays silent instead of re-running the digest"
 }
 
 test_run_reads_source_from_the_hook_payload() {
@@ -952,15 +973,18 @@ test_run_reads_source_from_the_hook_payload() {
   expect_code 0 "$status" "run wrapper payload compact"
   assert_contains "$out" "$REEMIT_BANNER$root" "a compact hook payload was not routed to a re-emit"
 
-  # A fresh root, because the compact case above legitimately took the lock and
-  # an owned lock is exactly when the nudge is supposed to stay silent.
+  # A fresh root that has already taken the helm, because an OWNED lock is
+  # exactly when resume is supposed to stay silent: the wrapper delegates to the
+  # nudge, whose own ancestry check then stays quiet. If the payload's source
+  # were ignored and defaulted to startup, this same call would run the digest.
   root="$TMP_ROOT/run-payload-resume"
   make_run_primary "$root"
+  run_hook "$root" --source startup </dev/null >/dev/null
   status=0
   out=$(printf '{"source":"resume","cwd":"/nowhere"}' | run_hook "$root") || status=$?
   expect_code 0 "$status" "run wrapper payload resume"
-  assert_contains "$out" "FIRSTMATE_OP" "a resume hook payload did not delegate to the nudge"
-  assert_not_contains "$out" "SESSION START" "a resume hook payload still ran the digest"
+  [ -z "$out" ] || fail "an owned resume hook payload ran the digest instead of delegating: $out"
+  pass "run wrapper: an owned resume hook payload stays silent while a startup would take the helm"
   pass "run wrapper: the hook payload's source field drives routing with no explicit argument"
 }
 
@@ -1003,6 +1027,49 @@ test_run_gate_and_scope_are_silent() {
   pass "run wrapper: ordinary ineligible opens stay silent-zero and Pi preflight gets an explicit silent stand-down"
 }
 
+test_run_secondmate_home_survives_a_leaked_launcher_home() {
+  local root="$TMP_ROOT/run-leak-sm" leak="$TMP_ROOT/run-leak-main" fm_unmarked out status=0
+  # The wrapper must live INSIDE the seeded home: production always runs the
+  # home's own tracked script, and the correction keys on that script's root.
+  mkdir -p "$root/bin" "$root/state" "$root/data" "$root/config" "$leak/state"
+  printf 'bosun\n' > "$root/.fm-secondmate-home"
+  : > "$root/AGENTS.md"
+  cp "$ROOT/bin/fm-sessionstart-run.sh" "$ROOT/bin/fm-home-lib.sh" \
+    "$ROOT/bin/fm-gate-refuse-lib.sh" "$ROOT/bin/fm-primary-scope-lib.sh" \
+    "$ROOT/bin/fm-session-lock-lib.sh" "$ROOT/bin/fm-cursor-lib.sh" \
+    "$ROOT/bin/fm-hook-host-lib.sh" "$root/bin/"
+  cat > "$root/bin/fm-session-start.sh" <<'SH'
+#!/usr/bin/env bash
+printf 'DIGEST root=%s\n' "${FM_HOME:-}"
+SH
+  chmod +x "$root/bin/"*.sh
+  # The launcher (a restored pane, a reboot, or a backend server) leaked the
+  # MAIN home into FM_HOME. The wrapper must still run the seeded home's digest,
+  # which is the whole point of the shell-layer correction.
+  out=$(env -u CLAUDECODE -u PI_CODING_AGENT -u FM_PI_HARNESS -u GROK_AGENT \
+    FM_GATE_REFUSE_BYPASS=0 FM_ROOT_OVERRIDE="$root" FM_HOME="$leak" PATH="$RUN_PATH" \
+    "$root/bin/fm-sessionstart-run.sh" --source startup </dev/null) || status=$?
+  expect_code 0 "$status" "run wrapper from a leaked launcher home"
+  assert_contains "$out" "DIGEST root=$root" \
+    "a leaked launcher FM_HOME overrode the secondmate's own root"
+  assert_not_contains "$out" "root=$leak" \
+    "the secondmate digest leaked the launcher home"
+
+  # An UNMARKED root keeps the ordinary inherited-override precedence, so a
+  # normal home or task worktree is untouched by the correction.
+  fm_unmarked="$TMP_ROOT/run-leak-plain"
+  mkdir -p "$fm_unmarked/bin" "$fm_unmarked/state" "$fm_unmarked/data" "$fm_unmarked/config"
+  : > "$fm_unmarked/AGENTS.md"
+  cp "$ROOT/bin/fm-home-lib.sh" "$fm_unmarked/bin/"
+  ( # shellcheck source=/dev/null
+    . "$ROOT/bin/fm-home-lib.sh"
+    fm_home_correct "$fm_unmarked" "$leak" "$leak"
+    [ "$FM_HOME_RESOLVED" = "$leak" ] || exit 1
+    [ "$FM_ROOT_RESOLVED" = "$leak" ] || exit 1
+  ) || fail "an unmarked root lost its ordinary inherited-override precedence"
+  pass "run wrapper and home lib: a seeded secondmate home wins over a leaked launcher FM_HOME while an unmarked root is untouched"
+}
+
 test_run_reports_a_failed_session_start_as_digest_text() {
   local root="$TMP_ROOT/run-unwritable" out status=0
   make_run_primary "$root"
@@ -1028,10 +1095,12 @@ test_run_rebuild_forwards_source_to_drifted_instruction_refresh
 test_run_compact_without_completion_refreshes_before_finishing_startup
 test_run_clear_without_completion_finishes_startup
 test_run_clear_rejects_previous_owner_completion
-test_run_resume_delegates_to_the_nudge
+test_run_resume_without_owned_lock_takes_the_helm
+test_run_resume_with_owned_lock_delegates_to_the_nudge
 test_run_reads_source_from_the_hook_payload
 test_run_unknown_source_takes_the_helm
 test_run_gate_and_scope_are_silent
+test_run_secondmate_home_survives_a_leaked_launcher_home
 test_run_reports_a_failed_session_start_as_digest_text
 test_pi_startup_classifies_cli_continuations
 test_pi_sessionstart_generation_prerequisite
