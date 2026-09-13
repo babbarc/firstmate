@@ -594,6 +594,32 @@ test_invalid_entrypoints_have_zero_side_effects() {
   pass "PR and teardown entrypoints reject invalid arguments before every side effect"
 }
 
+test_relaunch_control_tx_meta_order() {
+  local dir
+  dir=$(make_case relaunch-control-tx-order)
+  write_task_meta "$dir"
+  FM_TEST_GH_HEAD=0123456789abcdef0123456789abcdef01234567 \
+    run_check_entry "$dir" task-a https://github.com/o/r/pull/1 \
+    >/dev/null 2>/dev/null || fail "arming the poll failed"
+  fm_pr_poll_artifacts_valid "$dir/home/state" task-a "$POLL" \
+    || fail "freshly armed poll did not authenticate"
+
+  # A control-plane relaunch preserves pr=/pr_head= (bin/fm-spawn.sh's
+  # preserve_relaunch_meta) and then appends control_relaunch_tx= after them;
+  # that exact post-relaunch order must still authenticate the armed watch.
+  printf 'control_relaunch_tx=deadbeef\n' >> "$dir/home/state/task-a.meta"
+  fm_pr_poll_artifacts_valid "$dir/home/state" task-a "$POLL" \
+    || fail "relaunch-ordered control_relaunch_tx after pr=/pr_head= disabled the armed watch"
+
+  # The allowlist stays narrow: an unrecognized trailing key after pr=/pr_head=
+  # must still be rejected, exactly as an extra key before pr= is rejected.
+  printf 'evil_unrecognized_key=1\n' >> "$dir/home/state/task-a.meta"
+  ! fm_pr_poll_artifacts_valid "$dir/home/state" task-a "$POLL" \
+    || fail "an unrecognized trailing key after pr=/pr_head= was accepted"
+
+  pass "a relaunch-ordered control_relaunch_tx= authenticates while unknown trailing keys stay rejected"
+}
+
 test_valid_recording_and_merge_derivation() {
   local dir expected sidecar count rc
   dir=$(make_case valid-recording)
@@ -2675,6 +2701,7 @@ test_retirement_refuses_replacement_and_nonterminal_results
 test_retirement_queue_failure_and_receipt_tampering
 test_gitlab_merged_poll_retires
 test_invalid_entrypoints_have_zero_side_effects
+test_relaunch_control_tx_meta_order
 test_valid_recording_and_merge_derivation
 test_rejected_metacharacter_bytes_are_inert
 test_static_poll_contract
