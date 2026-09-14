@@ -1,0 +1,20 @@
+# Repro: fm-sessionstart-hook-live-e2e.test.sh make_lab fixture, missing bin/fm-home-lib.sh
+
+This reproduces exactly the failure described in the decided review finding
+'sessionstart-hook-live-e2e-missing-home-lib-symlink': sourcing the real
+bin/fm-startup-network.sh dependency chain (via fm-wake-lib.sh) from a fixture
+bin/ directory that symlinks only the originally-listed libs (fm-timeout-lib.sh,
+fm-wake-lib.sh, fm-session-lock-lib.sh) and omits bin/fm-home-lib.sh, which
+bin/fm-wake-lib.sh unconditionally sources.
+
+## BEFORE the fix (fm-home-lib.sh not symlinked into the fixture bin/)
+$ bash -c 'set -u; . "/tmp/tmp.NTBC4x90qG/bin/fm-wake-lib.sh"'
+/tmp/tmp.NTBC4x90qG/bin/fm-wake-lib.sh: line 7: /tmp/tmp.NTBC4x90qG/bin/fm-home-lib.sh: No such file or directory
+/tmp/tmp.NTBC4x90qG/bin/fm-wake-lib.sh: line 8: fm_home_correct: command not found
+/tmp/tmp.NTBC4x90qG/bin/fm-wake-lib.sh: line 9: FM_HOME_RESOLVED: unbound variable
+(exit 127, matches the reported failure: 'No such file or directory' -> 'fm_home_correct: command not found' -> 'FM_HOME_RESOLVED: unbound variable')
+
+## AFTER the fix (bin/fm-home-lib.sh symlinked in, as applied at tests/fm-sessionstart-hook-live-e2e.test.sh:125)
+$ FM_HOME="/tmp/tmp.NTBC4x90qG" bash -c 'set -u; . "/tmp/tmp.NTBC4x90qG/bin/fm-wake-lib.sh"; echo "sourced ok, FM_HOME=$FM_HOME"'
+sourced ok, FM_HOME=/tmp/tmp.NTBC4x90qG
+(exit 0)
