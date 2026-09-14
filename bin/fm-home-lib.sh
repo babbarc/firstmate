@@ -36,6 +36,7 @@ fm_home_is_secondmate_root() {  # <root>
   return 0
 }
 
+# shellcheck disable=SC2034  # FM_HOME_RESOLVED/FM_ROOT_RESOLVED are read by callers after sourcing.
 fm_home_correct() {  # <own-root> <requested-home> <requested-root>
   local own=$1 home=${2:-} root=${3:-}
   [ -n "$home" ] || home=$own

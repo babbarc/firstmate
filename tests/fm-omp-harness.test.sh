@@ -516,7 +516,7 @@ EOF
 }
 
 test_omp_extension_corrects_leaked_launcher_home() {
-  local repo home leaked log out status
+  local repo home log out status
   repo="$TMP_ROOT/leak/repo"; home="$TMP_ROOT/leak/leaked-main"; log="$TMP_ROOT/leak/runner.log"
   install_omp_extension_fixture "$repo"
   # This repo IS a seeded secondmate home (its marker), while the launcher

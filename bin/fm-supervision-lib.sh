@@ -127,6 +127,7 @@ FM_SUP_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # FM_SUP_HOME_OK=yes|no and, on no, FM_SUP_HOME_REASON to a short cause. Always
 # returns 0; the caller reads the vars. An unreadable or absent home is a
 # failure with its own reason, never treated as healthy.
+# shellcheck disable=SC2034  # FM_SUP_HOME_OK/FM_SUP_HOME_REASON are read by callers after the call.
 fm_supervision_home_verdict() {
   local home=$1 grace=${2:-${FM_GUARD_GRACE:-300}} lock_pid complete_pid
   FM_SUP_HOME_OK=no
