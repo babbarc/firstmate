@@ -22,6 +22,11 @@
 #   - bin/fm-bootstrap.sh's secondmate_liveness_sweep recovers only dead or
 #     missing endpoints, keeps successful recovery and already-live results
 #     silent by default, and reports ambiguous and unreadable targets distinctly.
+#   - A LIVE endpoint whose OWN home is not supervised - its session lock names a
+#     dead process, its startup completion does not match the live lock, or its
+#     watcher beacon is stale while supervision is required - is reported as an
+#     actionable "alive but unsupervised" diagnostic and never recovered from,
+#     because endpoint-alive is exactly the misleading signal there.
 #   - The sweep converges: once a secondmate reads alive, a later run never
 #     re-touches it (idempotent by construction, not by remembering what it
 #     already did).
@@ -39,6 +44,24 @@ BASE_PATH=${FM_TEST_BASE_PATH:-/usr/bin:/bin:/usr/sbin:/sbin}
 fm_git_identity fmtest fmtest@example.com
 
 TMP_ROOT=$(fm_test_tmproot fm-secondmate-liveness)
+
+# One live "harness" process the healthy-supervision fixtures point their lock
+# at. bash's `exec -a pi` gives it a pi argv[0] while ps reports the sleep exec
+# name, exercising the same path-component identity rule
+# bin/fm-session-lock-lib.sh applies on Linux.
+SM_FAKE_HARNESS_PID=
+start_fake_harness() {
+  bash -c 'exec -a pi sleep 60000' &
+  SM_FAKE_HARNESS_PID=$!
+  sleep 0.2
+}
+cleanup_fake_harness() {
+  [ -n "$SM_FAKE_HARNESS_PID" ] || return 0
+  kill "$SM_FAKE_HARNESS_PID" 2>/dev/null || true
+  SM_FAKE_HARNESS_PID=
+}
+trap cleanup_fake_harness EXIT INT TERM
+start_fake_harness
 
 # --- unit level: fm_backend_tmux_agent_state --------------------------------
 
@@ -329,7 +352,10 @@ new_world() {
 # add_sm_home <w> <id> <window>: a plain (non-git) secondmate home - the
 # probe/respawn machinery under test never requires the home to be a real
 # worktree; a non-git home just makes the unrelated fast-forward sweep log a
-# harmless "not a git repo" skip.
+# harmless "not a git repo" skip. The home is seeded with a HEALTHY supervision
+# record (a lock naming the live fake harness, matching startup completion, and
+# a fresh beacon) so the alive-branch supervision check stays silent unless a
+# test deliberately breaks one of those.
 add_sm_home() {
   local w=$1 id=$2 window=$3 harness=${4:-claude}
   local home="$w/$id"
@@ -337,6 +363,9 @@ add_sm_home() {
   printf '%s\n' "$id" > "$home/.fm-secondmate-home"
   printf '# Firstmate\n' > "$home/AGENTS.md"
   printf 'charter\n' > "$home/data/charter.md"
+  printf '%s\n' "$SM_FAKE_HARNESS_PID" > "$home/state/.lock"
+  printf '%s\n' "$SM_FAKE_HARNESS_PID" > "$home/state/.session-start-complete"
+  touch "$home/state/.last-watcher-beat"
   {
     printf 'window=%s\n' "$window"
     printf 'kind=secondmate\n'
@@ -523,6 +552,62 @@ test_sweep_skipped_under_detect_only() {
   pass "sweep: skipped entirely under FM_BOOTSTRAP_DETECT_ONLY=1, exactly like the other mutating sweeps"
 }
 
+test_sweep_reports_alive_but_unsupervised_stale_lock() {
+  local w fb tmuxfb log out
+  w=$(new_world sweep-stale-lock)
+  add_sm_home "$w" sm1 firstmate:fm-sm1 pi
+  # The restored-session signature: the endpoint process is genuinely alive,
+  # but its own lock still names the dead pre-restart pid, so nothing ever took
+  # the helm after the restart.
+  printf '99999999\n' > "$w/sm1/state/.lock"
+  fb=$(make_toolchain "$w"); tmuxfb=$(make_liveness_tmux "$w")
+  log="$w/calls.log"; : > "$log"
+
+  out=$(run_bootstrap "$tmuxfb:$fb" "$w/home" claude "$log")
+
+  assert_contains "$out" "SECONDMATE_LIVENESS: secondmate sm1: alive but unsupervised: its own session lock names pid 99999999, which is not a live harness; recover with bin/fm-control.sh sm1 relaunch" \
+    "an alive endpoint with a stale own lock must be reported as unsupervised"
+  [ ! -s "$log" ] || fail "an alive-but-unsupervised secondmate is not a recovery-grade state and must not be killed or respawned: $(cat "$log")"
+  pass "sweep: an alive endpoint whose own session lock is stale is reported, not silently accepted"
+}
+
+test_sweep_reports_alive_but_unsupervised_missing_completion() {
+  local w fb tmuxfb log out
+  w=$(new_world sweep-no-completion)
+  add_sm_home "$w" sm1 firstmate:fm-sm1 pi
+  rm -f "$w/sm1/state/.session-start-complete"
+  fb=$(make_toolchain "$w"); tmuxfb=$(make_liveness_tmux "$w")
+  log="$w/calls.log"; : > "$log"
+
+  out=$(run_bootstrap "$tmuxfb:$fb" "$w/home" claude "$log")
+
+  assert_contains "$out" "SECONDMATE_LIVENESS: secondmate sm1: alive but unsupervised: its own startup completion is not recorded for live lock pid" \
+    "a live lock with no matching startup completion must be reported as unsupervised"
+  [ ! -s "$log" ] || fail "a missing completion record must not license recovery: $(cat "$log")"
+  pass "sweep: a live lock without matching startup completion is reported as unsupervised"
+}
+
+test_sweep_reports_alive_but_unsupervised_stale_beacon() {
+  local w fb tmuxfb log out
+  w=$(new_world sweep-stale-beacon)
+  add_sm_home "$w" sm1 firstmate:fm-sm1 pi
+  # Make the home need supervision (an in-flight record) while its beacon is
+  # older than the grace window: the exact shape of a lock that was retaken but
+  # whose watcher never re-armed.
+  : > "$w/sm1/state/child.meta"
+  fb=$(make_toolchain "$w"); tmuxfb=$(make_liveness_tmux "$w")
+  log="$w/calls.log"; : > "$log"
+
+  out=$(run_bootstrap "$tmuxfb:$fb" "$w/home" claude "$log" FM_GUARD_GRACE=0)
+
+  assert_contains "$out" "SECONDMATE_LIVENESS: secondmate sm1: alive but unsupervised: its watcher beacon is" \
+    "a live lock whose watcher beacon is stale while supervision is required must be reported"
+  assert_contains "$out" "while supervision is required" \
+    "the stale-beacon diagnostic must name why the beacon mattered"
+  [ ! -s "$log" ] || fail "a stale beacon must not license recovery: $(cat "$log")"
+  pass "sweep: a live lock whose watcher beacon is stale while supervision is required is reported"
+}
+
 test_sweep_noop_with_no_secondmate_meta() {
   local w fb tmuxfb log out
   w=$(new_world sweep-no-secondmates)
@@ -553,6 +638,9 @@ test_sweep_never_acts_on_transient_unreadability
 test_sweep_reports_missing_endpoint_relaunch_failure
 test_sweep_never_acts_on_unverified_harness_dead_reading
 test_sweep_converges_no_retouch_once_alive
+test_sweep_reports_alive_but_unsupervised_stale_lock
+test_sweep_reports_alive_but_unsupervised_missing_completion
+test_sweep_reports_alive_but_unsupervised_stale_beacon
 test_sweep_skipped_under_detect_only
 test_sweep_noop_with_no_secondmate_meta
 

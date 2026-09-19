@@ -222,6 +222,8 @@ Every Herdr invocation goes through `fm_backend_herdr_cli`, which sets the envir
 An environment variable alone is not reliable when another Herdr server is running.
 When the selected named server is not running, the adapter launches it without inherited Firstmate home and directory overrides, harness identity markers, or the supervision-model override.
 Herdr passes its server startup environment to every later pane, so retaining those values could misroute panes for another Firstmate home or harness.
+A pane whose harness process Herdr re-executes after a server restart can therefore inherit an `FM_HOME` naming a different home while its working directory stays the restored secondmate home.
+The tracked extensions resolve a seeded secondmate home from its own `.fm-secondmate-home` marker before honoring an inherited override, so that restored session still comes up on its own home (`.pi/extensions/lib/fm-home-resolve.ts` owns the correction).
 An already-running server is reused without restart or environment changes.
 Explicit named-session routing and unrelated launch environment remain intact.
 
