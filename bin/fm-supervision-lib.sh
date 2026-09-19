@@ -5,7 +5,10 @@
 # Reports whether a firstmate home needs supervision (fm_supervision_status
 # below is the single owner of that condition set), and whether its watcher has
 # a fresh liveness beacon (state/.last-watcher-beat, touched every poll cycle,
-# within the grace window).
+# within the grace window). fm_supervision_home_verdict lets a primary judge
+# ANOTHER home's supervision from the outside (its session lock, startup
+# completion, and beacon), which is what detects a secondmate that is alive but
+# unsupervised after a restart.
 # bin/fm-turnend-guard.sh uses the PID-strict fm_watcher_healthy from
 # bin/fm-wake-lib.sh for its block decision. bin/fm-guard.sh uses the model-aware
 # fm_watcher_supervision_verdict (also in bin/fm-wake-lib.sh), which owns what a
@@ -110,4 +113,56 @@ fm_supervision_needed() {
 fm_supervision_unhealthy() {
   fm_supervision_status "$@"
   [ "$FM_SUP_NEEDED" = true ] && [ "$FM_SUP_WATCHER_FRESH" = false ]
+}
+
+FM_SUP_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# fm_supervision_home_verdict <home> [grace-seconds]
+# The cross-home supervision check a primary can run against a secondmate home
+# it does not itself occupy: a home is supervised only when its session lock
+# names a live harness process, its startup completion record names that same
+# pid, and - when the home actually needs a watcher - its beacon is fresh.
+# Endpoint liveness cannot decide this, because the leaked/restored session this
+# predicate exists to catch has a genuinely running agent. Sets
+# FM_SUP_HOME_OK=yes|no and, on no, FM_SUP_HOME_REASON to a short cause. Always
+# returns 0; the caller reads the vars. An unreadable or absent home is a
+# failure with its own reason, never treated as healthy.
+# shellcheck disable=SC2034  # FM_SUP_HOME_OK/FM_SUP_HOME_REASON are read by callers after the call.
+fm_supervision_home_verdict() {
+  local home=$1 grace=${2:-${FM_GUARD_GRACE:-300}} lock_pid complete_pid
+  FM_SUP_HOME_OK=no
+  FM_SUP_HOME_REASON=""
+  if [ -z "$home" ] || [ ! -d "$home/state" ]; then
+    FM_SUP_HOME_REASON="its own state directory is unreadable"
+    return 0
+  fi
+  if ! command -v fm_harness_pid_alive >/dev/null 2>&1; then
+    # shellcheck source=bin/fm-session-lock-lib.sh
+    . "$FM_SUP_LIB_DIR/fm-session-lock-lib.sh"
+  fi
+  lock_pid=$(cat "$home/state/.lock" 2>/dev/null || true)
+  case "$lock_pid" in
+    ''|*[!0-9]*)
+      FM_SUP_HOME_REASON="its own session lock is absent or malformed"
+      return 0
+      ;;
+  esac
+  if ! fm_harness_pid_alive "$lock_pid"; then
+    FM_SUP_HOME_REASON="its own session lock names pid $lock_pid, which is not a live harness"
+    return 0
+  fi
+  complete_pid=$(cat "$home/state/.session-start-complete" 2>/dev/null || true)
+  if [ "$complete_pid" != "$lock_pid" ]; then
+    FM_SUP_HOME_REASON="its own startup completion is not recorded for live lock pid $lock_pid"
+    return 0
+  fi
+  # A secondmate with no in-flight work, relay poll, registered source, or
+  # registered custom check legitimately holds its lock with no fresh beacon.
+  fm_supervision_status "$home/state" "$grace"
+  if [ "$FM_SUP_NEEDED" = true ] && [ "$FM_SUP_WATCHER_FRESH" = false ]; then
+    FM_SUP_HOME_REASON="its watcher beacon is ${FM_SUP_BEACON_DESC} while supervision is required"
+    return 0
+  fi
+  FM_SUP_HOME_OK=yes
+  return 0
 }
