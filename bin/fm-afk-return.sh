@@ -140,6 +140,9 @@ window_start_epoch() {
   fi
   if [ -z "$epoch" ] && [ -f "$STATE/.afk" ]; then
     flag=$(head -1 "$STATE/.afk" 2>/dev/null || true)
+    case "$flag" in
+      ''|*[!0-9]*) flag=$(sed -n '2p' "$STATE/.afk" 2>/dev/null || true) ;;
+    esac
     case "$flag" in ''|*[!0-9]*) ;; *) epoch=$flag ;; esac
   fi
   case "$epoch" in ''|*[!0-9]*) printf '' ;; *) printf '%s' "$epoch" ;; esac
@@ -312,7 +315,18 @@ health_snapshot() {  # <evidence-file>
   local evidence=$1 beat_age lines=""
   beat_age=$(fm_path_age "$STATE/.last-watcher-beat")
   if [ -e "$STATE/.watcher-down" ]; then
-    lines="GAP: watcher downtime was detected during the away window (recovery marker present)"
+    # The marker survives past its episode in an acked:* state
+    # (fm-wake-lib.sh _fm_recovery_marker_ack); only pending:* and
+    # announced:* mean the downtime is still open. A marker this read
+    # cannot parse is treated the same as an open gap, conservatively.
+    if fm_recovery_marker_snapshot "$STATE/.watcher-down"; then
+      case "$FM_RECOVERY_MARKER_TOKEN" in
+        acked:*) : ;;
+        *) lines="GAP: watcher downtime was detected during the away window (recovery marker present)" ;;
+      esac
+    else
+      lines="GAP: watcher downtime was detected during the away window (recovery marker present)"
+    fi
   fi
   if [ -e "$STATE/.afk" ] && ! fm_afk_daemon_owns_supervision "$STATE"; then
     lines="$lines
@@ -491,10 +505,14 @@ EOF
   done
   [ "$count" -gt 0 ] || printf '  (nothing)\n'
 
-  # 5. handled while away.
+  # 5. handled while away. Every outcome the away session recorded in the
+  # store during the window counts as handled. On Pi the supervision branch
+  # took every safe actionable wake it could while main was parked; wakes it
+  # declined still fell back to main. The captain rows are listed above.
   printf 'Handled while away:\n'
   routine=$(printf '%s\n' "$STORE_ROWS" | awk -F '\t' '$3 == "routine" { n++ } END { print n + 0 }')
   captain=$(printf '%s\n' "$STORE_ROWS" | awk -F '\t' '$3 == "captain" { n++ } END { print n + 0 }')
+  printf '  %s outcome(s) handled by the away session (%s routine, %s escalated above)\n' "$((routine + captain))" "$routine" "$captain"
   if [ "$routine" -gt 0 ]; then
     printf '  %s routine outcome(s) recorded; the latest:\n' "$routine"
     printf '%s\n' "$STORE_ROWS" | awk -F '\t' '$3 == "routine" { printf "    - %s: %s\n", $2, $5 }' | tail -5
