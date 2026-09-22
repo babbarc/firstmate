@@ -255,7 +255,7 @@ This task ships **direct-PR**: you raise the PR yourself, without the no-mistake
 The task is complete only when committed on your branch.
 When it is implemented and committed, push your branch to the \`origin\` remote and open a PR against \`origin\` that is ready for review, not a draft.
 Use \`gh-axi\` when \`origin\` is a GitHub repository and \`tea\` (\`tea pr create\`) when \`origin\` is a Gitea or Forgejo repository; never push to or open a PR against any read-only mirror remote (for example a GitHub mirror of a Gitea-hosted repo).
-Before you report done, read the PR back from the forge and confirm it is not a draft (\`gh pr view <url> --json isDraft\` must print false for a GitHub PR, or the equivalent Gitea/Forgejo check via \`tea\`); if it is a draft, mark it ready (\`gh-axi pr ready\` on GitHub, or \`tea\`'s equivalent on Gitea/Forgejo) before reporting done.
+Before you report done, read the PR back from the forge and confirm it is not a draft (\`gh pr view <url> --json isDraft\` must print false); if it is a draft, mark it ready with \`gh-axi pr ready\`. On a Gitea or Forgejo PR, use \`tea\`'s equivalent non-draft check and ready command.
 A draft cannot be merged, so a done report on one leaves the merge unasked.
 Then append \`done [at=<epoch>]: PR {url}\` to the status file and stop.
 If you deliberately keep the PR a draft, append \`paused [at=<epoch>]: {why the draft is held}\` instead of done.
