@@ -7,6 +7,14 @@
 # API-compatible Forgejo) pull request URL are all accepted, including on a
 # self-hosted GitLab or Gitea instance. A Gitea URL is accepted only when its
 # instance base URL is listed in config/gitea-instances (fm-pr-lib.sh).
+# A GitHub pull request the forge reports as a draft is refused, naming the draft
+# state and recording and arming nothing: a draft cannot be merged, so a poll armed on it
+# would wait for an event that cannot occur while nobody is asked to act.
+# Mark the pull request ready for review, then arm again; a lane that keeps a
+# draft on purpose declares a wait instead of reporting done. An unreadable
+# draft state does not refuse, matching how the head read below is optional.
+# bin/fm-pr-merge.sh records through this script with FM_PR_CHECK_MERGE=1 and
+# skips this refusal, because its own merge-time draft refusal is authoritative.
 # Usage: fm-pr-check.sh <task-id> <pr-url>
 set -eu
 
@@ -94,6 +102,16 @@ if [ "$PROVIDER" = gitea ]; then
   fi
   if ! tea login list -o csv 2>/dev/null | tail -n +2 | cut -d, -f1 | grep -qxF "$GITEA_LOGIN"; then
     echo "error: watching a Gitea pull request needs a tea login named '$GITEA_LOGIN' for $HOST (run: tea login add --name $GITEA_LOGIN --url $HOST --token <token>)" >&2
+    exit 1
+  fi
+fi
+
+# The draft state is read before anything is recorded or armed. Only a positive
+# draft reading refuses, because an unreadable one must not block arming.
+if [ "$PROVIDER" = github ] && [ "${FM_PR_CHECK_MERGE:-}" != 1 ] && command -v gh >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
+  DRAFT_JSON=$(gh pr view "$URL" --json isDraft 2>/dev/null || true)
+  if [ "$(fm_pr_json_draft_state "$DRAFT_JSON")" = true ]; then
+    echo "error: $URL is a draft pull request; a draft cannot be merged, so merge monitoring would wait for an event that cannot occur - mark it ready for review and arm again, or declare a wait instead of done if the draft is deliberate" >&2
     exit 1
   fi
 fi
