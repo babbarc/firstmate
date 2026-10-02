@@ -8,7 +8,7 @@
 # API-compatible Forgejo) pull request is addressed through tea by the derived
 # owner and repository plus the tea login re-derived from the instance base URL,
 # and is accepted only when that base URL is allow-listed in
-# config/gitea-instances (bin/fm-pr-lib.sh). A Gerrit change is refused
+# config/gitea-instances (bin/fm-pr-gitea-lib.sh). A Gerrit change is refused
 # outright: that adapter is read-only, and the refusal at the parse below owns
 # why.
 #
@@ -170,6 +170,8 @@ CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 
 # shellcheck source=bin/fm-pr-lib.sh
 . "$SCRIPT_DIR/fm-pr-lib.sh"
+# shellcheck source=bin/fm-pr-gitea-lib.sh
+. "$SCRIPT_DIR/fm-pr-gitea-lib.sh"
 # shellcheck source=bin/fm-backlog-transition-lib.sh
 . "$SCRIPT_DIR/fm-backlog-transition-lib.sh"
 # shellcheck source=bin/fm-merge-outcome-lib.sh
@@ -202,7 +204,7 @@ PROJECT_URL="https://$FM_PR_HOST/$FM_PR_PATH"
 
 # A Gitea URL only names a shape; the instance base URL must be allow-listed in
 # config/gitea-instances before this merges against it. Resolve the tea login
-# from that same base URL (fm-pr-lib.sh).
+# from that same base URL (fm-pr-gitea-lib.sh).
 GITEA_LOGIN=
 if [ "$PROVIDER" = gitea ]; then
   if ! fm_pr_gitea_instance_resolve "$CONFIG" "$FM_PR_HOST"; then

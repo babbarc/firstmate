@@ -48,8 +48,8 @@
 # root before any recovery mutation, then re-runs exactly that close. It is
 # passed this home's config directory so a recorded `--pr` link on a plain-http
 # Gitea/Forgejo instance is accepted only when that instance base URL is
-# allow-listed in config/gitea-instances (fm-pr-lib.sh owns the parse and the
-# allow-list read).
+# allow-listed in config/gitea-instances (fm-pr-lib.sh owns the parse and
+# fm-pr-gitea-lib.sh the allow-list read).
 # `tasks-axi done` on an already-closed task backfills links
 # without moving the close date, so replay is idempotent. Spawn needs no marker:
 # it publishes the meta first, so a crash
@@ -1000,17 +1000,20 @@ fm_backlog_close_marker_validate() {  # <marker-path> <authorized-data-dir> <exp
           arg_value=${args[1]}
           # A plain-http origin is accepted only for a Gitea/Forgejo pull
           # request whose instance base URL is allow-listed in
-          # config/gitea-instances; fm-pr-lib.sh owns both that URL parse and
-          # the allow-list read. The subshell keeps the parse from overwriting
-          # a caller's FM_PR_* identity. An https URL keeps the pre-existing
-          # generic acceptance (GitHub, GitLab, and https Gitea alike).
+          # config/gitea-instances; fm-pr-lib.sh owns that URL parse and
+          # fm-pr-gitea-lib.sh the allow-list read, run rather than sourced so
+          # it stays out of teardown's source graph. The subshell keeps the
+          # parse from overwriting a caller's FM_PR_* identity. An https URL
+          # keeps the pre-existing generic acceptance (GitHub, GitLab, and
+          # https Gitea alike).
           [ "${#arg_value}" -le 2048 ] \
             && case "$arg_value" in
               https://*) true ;;
               http://*)
                 ( fm_pr_url_parse "$arg_value" \
                     && [ "$FM_PR_PROVIDER" = gitea ] \
-                    && fm_pr_gitea_instance_resolve "$config_dir" "$FM_PR_HOST" )
+                    && bash "$(dirname "${BASH_SOURCE[0]}")/fm-pr-gitea-lib.sh" \
+                      instance-allowed "$config_dir" "$FM_PR_HOST" )
                 ;;
               *) false ;;
             esac \
