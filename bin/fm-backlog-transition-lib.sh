@@ -48,8 +48,8 @@
 # root before any recovery mutation, then re-runs exactly that close. It is
 # passed this home's config directory so a recorded `--pr` link on a plain-http
 # Gitea/Forgejo instance is accepted only when that instance base URL is
-# allow-listed in config/gitea-instances (fm-pr-lib.sh owns the parse and the
-# allow-list read).
+# allow-listed in config/gitea-instances (fm-pr-lib.sh owns the parse and
+# fm-pr-gitea-lib.sh the allow-list read).
 # `tasks-axi done` on an already-closed task backfills links
 # without moving the close date, so replay is idempotent. Spawn needs no marker:
 # it publishes the meta first, so a crash
@@ -77,24 +77,18 @@ FM_BACKLOG_ROW_HOLD_KIND=
 # shellcheck disable=SC2034 # Output global, read by the sourcing caller.
 FM_BACKLOG_CLOSE_REPLAY_RESULT=
 
-_FM_BACKLOG_TRANSITION_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# The recorded-close validator reuses fm-pr-lib.sh's canonical PR/MR URL parser
-# and Gitea instance allow-list rather than hand-rolling a second copy of
-# either (AGENTS.md one-owner rule). Every direct caller of the close-marker
-# helpers already sources fm-pr-lib.sh, but bin/fm-bootstrap.sh's replay path
-# does not, so load it lazily here when it is missing.
-fm_backlog_pr_lib_helpers() {
-  command -v fm_pr_url_parse >/dev/null 2>&1 && return 0
-  # shellcheck source=bin/fm-pr-lib.sh
-  . "$_FM_BACKLOG_TRANSITION_LIB_DIR/fm-pr-lib.sh"
-}
-
 # Bounded execution is fm-timeout-lib.sh's alone; source it rather than
 # re-deriving a deadline here. It is stateless, so the memoisation reason this
 # library does not source fm-tasks-axi-lib.sh does not apply.
 # shellcheck source=bin/fm-timeout-lib.sh disable=SC1091
-. "$_FM_BACKLOG_TRANSITION_LIB_DIR/fm-timeout-lib.sh"
+. "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-timeout-lib.sh"
+# fm-pr-lib.sh owns which URL is a Gerrit change. It is functions and empty
+# globals only, so it is sourced once rather than re-initialising a caller's
+# parsed identity.
+if ! declare -F fm_pr_url_parse >/dev/null 2>&1; then
+  # shellcheck source=bin/fm-pr-lib.sh disable=SC1091
+  . "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/fm-pr-lib.sh"
+fi
 
 # Latched when a row read hits its bound. fm_backlog_row_show runs inside a
 # command substitution, so the subshell can READ this latch but cannot set it;
@@ -526,29 +520,43 @@ fm_backlog_start() {  # <data-dir> <id>
   fm_backlog_mutate "$1" start "$2"
 }
 
+# tasks-axi takes a --pr link only as a canonical GitHub or Forgejo pull request
+# and refuses anything else, so such a link is recorded on the row as a note
+# instead: a Gerrit change URL as "Gerrit change <url>", and (fleet patch) a
+# Gitea/Forgejo pull request as "PR <url>", because a self-hosted instance's
+# plain-http or explicit-port base URL is outside the https-only Forgejo shape
+# tasks-axi accepts. Prints the note for a link that must become one and fails
+# for a link tasks-axi takes. The subshell keeps the parse from overwriting a
+# caller's FM_PR_* identity.
+fm_backlog_pr_link_note() {  # <url>
+  ( fm_pr_url_parse "$1" || exit 1
+    case "$FM_PR_PROVIDER" in
+      gerrit) printf 'Gerrit change %s\n' "$1" ;;
+      gitea) printf 'PR %s\n' "$1" ;;
+      *) exit 1 ;;
+    esac )
+}
+
 fm_backlog_done() {  # <data-dir> <id> [flag...]
-  local data=$1 id=$2
+  local data=$1 id=$2 arg note previous_arg=''
+  local -a done_args=()
   shift 2
-  # The backlog backend's structured `--pr` link must end in `/pull/<n>`; a
-  # Gitea/Forgejo PR URL ends in `/pulls/<n>` and the backend rejects it. Record
-  # a Gitea link as a completion note instead - the same shape fm_backlog_retain
-  # already uses for a captain-held row - while GitHub and GitLab keep the
-  # structured link. This is the single apply point for both a direct close and
-  # a crash replay, and the recorded close marker still carries the canonical
-  # `--pr <url>`; the provider is read from fm-pr-lib.sh's parser, not re-derived
-  # here.
-  if [ "${1-}" = --pr ] && [ "$#" -eq 2 ] \
-     && fm_backlog_pr_lib_helpers && fm_pr_url_parse "$2" \
-     && [ "$FM_PR_PROVIDER" = gitea ]; then
-    set -- --note "PR $2"
-  fi
-  fm_backlog_mutate "$data" "done" "$id" "$@"
+  for arg in "$@"; do
+    if [ "$previous_arg" = --pr ] && note=$(fm_backlog_pr_link_note "$arg"); then
+      done_args[${#done_args[@]}-1]=--note
+      done_args+=("$note")
+    else
+      done_args+=("$arg")
+    fi
+    previous_arg=$arg
+  done
+  fm_backlog_mutate "$data" "done" "$id" "${done_args[@]+"${done_args[@]}"}"
 }
 
 fm_backlog_row_artifact_supported() {
   local id=$1 flag=${2:-} value=${3:-}
   case "$flag" in
-    --pr) return 0 ;;
+    --pr) ! fm_backlog_pr_link_note "$value" >/dev/null ;;
     --report) [ "$value" = "data/$id/report.md" ] ;;
     *) return 1 ;;
   esac
@@ -563,7 +571,7 @@ fm_backlog_row_artifact_supported() {
 # fields; only bin/fm-captain-hold.sh answer resolves the call.
 fm_backlog_retain() {  # <data-dir> <id> [flag...]
   local data authorized_data=$1 id=$2 out command_status previous_arg=''
-  local arg deliverable='' line body new_body tmp
+  local arg deliverable='' note line body new_body tmp
   local -a row_args=()
   if ! data=$(fm_backlog_data_absolute "$1"); then
     FM_BACKLOG_TRANSITION_ERROR="data directory cannot be resolved: $1"
@@ -580,8 +588,12 @@ fm_backlog_retain() {  # <data-dir> <id> [flag...]
         fi
         ;;
       --pr)
-        deliverable="${deliverable:+$deliverable; }PR $arg"
-        row_args=(--pr "$arg")
+        if note=$(fm_backlog_pr_link_note "$arg"); then
+          deliverable="${deliverable:+$deliverable; }$note"
+        else
+          deliverable="${deliverable:+$deliverable; }PR $arg"
+          row_args=(--pr "$arg")
+        fi
         ;;
       --note) deliverable="${deliverable:+$deliverable; }$arg" ;;
     esac
@@ -988,17 +1000,20 @@ fm_backlog_close_marker_validate() {  # <marker-path> <authorized-data-dir> <exp
           arg_value=${args[1]}
           # A plain-http origin is accepted only for a Gitea/Forgejo pull
           # request whose instance base URL is allow-listed in
-          # config/gitea-instances; fm-pr-lib.sh owns both that URL parse and
-          # the allow-list read. An https URL keeps the pre-existing generic
-          # acceptance (GitHub, GitLab, and https Gitea alike).
+          # config/gitea-instances; fm-pr-lib.sh owns that URL parse and
+          # fm-pr-gitea-lib.sh the allow-list read, run rather than sourced so
+          # it stays out of teardown's source graph. The subshell keeps the
+          # parse from overwriting a caller's FM_PR_* identity. An https URL
+          # keeps the pre-existing generic acceptance (GitHub, GitLab, and
+          # https Gitea alike).
           [ "${#arg_value}" -le 2048 ] \
             && case "$arg_value" in
               https://*) true ;;
               http://*)
-                fm_backlog_pr_lib_helpers \
-                  && fm_pr_url_parse "$arg_value" \
-                  && [ "$FM_PR_PROVIDER" = gitea ] \
-                  && fm_pr_gitea_instance_resolve "$config_dir" "$FM_PR_HOST"
+                ( fm_pr_url_parse "$arg_value" \
+                    && [ "$FM_PR_PROVIDER" = gitea ] \
+                    && bash "$(dirname "${BASH_SOURCE[0]}")/fm-pr-gitea-lib.sh" \
+                      instance-allowed "$config_dir" "$FM_PR_HOST" )
                 ;;
               *) false ;;
             esac \

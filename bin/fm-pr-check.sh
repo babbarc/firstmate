@@ -10,7 +10,7 @@
 # and a Gitea (or API-compatible Forgejo) pull request URL are all accepted,
 # including a merge request, change, or pull request on a self-hosted
 # instance. A Gitea URL is accepted only when its instance base URL is listed
-# in config/gitea-instances (fm-pr-lib.sh).
+# in config/gitea-instances (fm-pr-gitea-lib.sh).
 # A GitHub pull request the forge reports as a draft is refused, naming the draft
 # state and recording and arming nothing: a draft cannot be merged, so a poll armed on it
 # would wait for an event that cannot occur while nobody is asked to act.
@@ -30,6 +30,8 @@ CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 
 # shellcheck source=bin/fm-pr-lib.sh
 . "$SCRIPT_DIR/fm-pr-lib.sh"
+# shellcheck source=bin/fm-pr-gitea-lib.sh
+. "$SCRIPT_DIR/fm-pr-gitea-lib.sh"
 # shellcheck source=bin/fm-wake-lib.sh
 . "$SCRIPT_DIR/fm-wake-lib.sh"
 # shellcheck source=bin/fm-parent-channel-lib.sh
