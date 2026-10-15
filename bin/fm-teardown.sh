@@ -1136,15 +1136,6 @@ if [ "${FM_TEARDOWN_GUARD_DONE:-0}" != 1 ]; then
 fi
 HOME_PATH=$(grep '^home=' "$META" | cut -d= -f2- || true)
 PR_URL=$(grep '^pr=' "$META" | tail -1 | cut -d= -f2- || true)
-# For a Gitea PR the landed-work check reads the forge through
-# bin/fm-pr-gitea-lib.sh, so record the provider now, before any later
-# fm_pr_url_parse call clobbers the FM_PR_* globals. A non-Gitea or unparseable
-# PR_URL leaves it empty or names another forge, and pr_is_merged falls back to
-# its provider-agnostic content check, exactly as it already does for GitLab.
-PR_PROVIDER=
-if [ -n "$PR_URL" ] && fm_pr_url_parse "$PR_URL"; then
-  PR_PROVIDER=$FM_PR_PROVIDER
-fi
 # tasktmp is recorded by fm-spawn for tasks that set up a per-task temp root
 # (/tmp/fm-<id>/); absent for tasks spawned before that change, so tolerate empty.
 TASK_TMP=$(grep '^tasktmp=' "$META" | cut -d= -f2- || true)
@@ -1494,11 +1485,6 @@ pr_number_from_target() {
       n=${target##*/pull/}
       n=${n%%[!0-9]*}
       ;;
-    *"/pulls/"*)
-      # Gitea/Forgejo pull request URL: <base>/<owner>/<repo>/pulls/<index>.
-      n=${target##*/pulls/}
-      n=${n%%[!0-9]*}
-      ;;
     [0-9]*)
       n=${target%%[!0-9]*}
       ;;
@@ -1550,12 +1536,10 @@ EOF
 }
 
 # Is the worktree's PR merged for local work contained in that PR? Resolves the
-# PR from the recorded pr= URL first, then from the branch name, and asks the
-# forge for both the PR state and head - GitHub through gh, Gitea through tea.
-# Returns non-zero when the PR is not merged, the current work is not contained
-# in the PR head, no PR is found, or any forge error occurs - the caller then
-# falls back to the content check (which also covers GitLab, whose teardown
-# path has no forge read).
+# PR from the recorded pr= URL first, then from the branch name, and asks GitHub
+# for both the PR state and head. Returns non-zero when the PR is not merged, the
+# current work is not contained in the PR head, no PR is found, or any gh error
+# occurs - the caller then falls back to the content check.
 pr_is_merged() {
   local branch=$1 target view state remainder head resolved_url current landed=0
   if [ -n "$PR_URL" ]; then
@@ -1564,13 +1548,7 @@ pr_is_merged() {
     target=$(pr_number_from_branch "$branch") || return 1
   fi
   [ -n "$target" ] || return 1
-  if [ "$PR_PROVIDER" = gitea ]; then
-    # Run, not sourced: it stays out of this script's source graph.
-    view=$(bash "$SCRIPT_DIR/fm-pr-gitea-lib.sh" pr-view "$CONFIG" "$PR_URL" 2>/dev/null) || return 1
-  else
-    view=$(cd "$WT" && gh pr view "$target" --json state,headRefOid,url -q '.state + "\t" + .headRefOid + "\t" + .url' 2>/dev/null) || return 1
-  fi
-  [ -n "$view" ] || return 1
+  view=$(cd "$WT" && gh pr view "$target" --json state,headRefOid,url -q '.state + "\t" + .headRefOid + "\t" + .url' 2>/dev/null) || return 1
   state=${view%%$'\t'*}
   remainder=${view#*$'\t'}
   [ "$state" != "$view" ] || return 1
@@ -3543,7 +3521,7 @@ teardown_legacy_stamp_rollback() {
   fi
   BACKLOG_CLOSED=1
   META_SPAWN_GEN=$TEARDOWN_META_SPAWN_GEN
-  if ! fm_backlog_close_marker_write "$STATE" "$ID" "$DATA" "$META_SPAWN_GEN" "$CONFIG" \
+  if ! fm_backlog_close_marker_write "$STATE" "$ID" "$DATA" "$META_SPAWN_GEN" \
       "${BACKLOG_TRANSITION_FLAGS[@]+"${BACKLOG_TRANSITION_FLAGS[@]}"}" \
       "${BACKLOG_DONE_ARGS[@]+"${BACKLOG_DONE_ARGS[@]}"}"; then
     if [ "$TEARDOWN_LEGACY_ACCEPTED" = 1 ] && [ -z "$TEARDOWN_LEGACY_RETAINED_STAMP" ] \

@@ -6,11 +6,9 @@
 # head is that named head and is already stored on the forge.
 # The watcher check source is byte-for-byte bin/fm-pr-poll.sh; task and PR data
 # live only in a private sidecar and are never interpolated into shell source.
-# A GitHub pull request URL, a GitLab merge request URL, a Gerrit change URL,
-# and a Gitea (or API-compatible Forgejo) pull request URL are all accepted,
-# including a merge request, change, or pull request on a self-hosted
-# instance. A Gitea URL is accepted only when its instance base URL is listed
-# in config/gitea-instances (fm-pr-gitea-lib.sh).
+# A GitHub pull request URL, a GitLab merge request URL, and a Gerrit change URL
+# are all accepted, including a merge request or change on a self-hosted
+# instance.
 # A GitHub pull request the forge reports as a draft is refused, naming the draft
 # state and recording and arming nothing: a draft cannot be merged, so a poll armed on it
 # would wait for an event that cannot occur while nobody is asked to act.
@@ -28,12 +26,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 FM_ROOT="${FM_ROOT_OVERRIDE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 FM_HOME="${FM_HOME:-${FM_ROOT_OVERRIDE:-$FM_ROOT}}"
 STATE="${FM_STATE_OVERRIDE:-$FM_HOME/state}"
-CONFIG="${FM_CONFIG_OVERRIDE:-$FM_HOME/config}"
 
 # shellcheck source=bin/fm-pr-lib.sh
 . "$SCRIPT_DIR/fm-pr-lib.sh"
-# shellcheck source=bin/fm-pr-gitea-lib.sh
-. "$SCRIPT_DIR/fm-pr-gitea-lib.sh"
 # shellcheck source=bin/fm-wake-lib.sh
 . "$SCRIPT_DIR/fm-wake-lib.sh"
 # shellcheck source=bin/fm-parent-channel-lib.sh
@@ -56,21 +51,6 @@ PROVIDER=$FM_PR_PROVIDER
 HOST=$FM_PR_HOST
 PROJECT_PATH=$FM_PR_PATH
 NUMBER=$FM_PR_NUMBER
-PR_OWNER=$FM_PR_OWNER
-PR_REPO=$FM_PR_REPO
-
-# A Gitea URL only names a shape; the instance base URL must be allow-listed in
-# config/gitea-instances before this arms a watch against it. Resolve the tea
-# login here too so a later missing-tool refusal is reported before any side
-# effect (the byte-static poll re-derives the same login from the base URL).
-GITEA_LOGIN=
-if [ "$PROVIDER" = gitea ]; then
-  if ! fm_pr_gitea_instance_resolve "$CONFIG" "$HOST"; then
-    echo "error: $HOST is not an allow-listed Gitea instance; add its base URL to $CONFIG/gitea-instances" >&2
-    exit 1
-  fi
-  GITEA_LOGIN=$FM_PR_GITEA_LOGIN
-fi
 
 # Task-derived paths are constructed only after the canonical ID validation.
 META="$STATE/$ID.meta"
@@ -120,26 +100,6 @@ if [ "$PROVIDER" = gerrit ]; then
   fi
 fi
 
-# Same reasoning for Gitea: refuse to arm a watch the poll could never fire,
-# whether tea or jq is absent, or the login for this instance is not
-# configured. The poll reads the merged state out of tea's raw API JSON, so it
-# needs jq the way the GitLab poll does not - reporting it here is the one
-# place a missing JSON processor is visible rather than indistinguishable from
-# an unmerged pull request.
-if [ "$PROVIDER" = gitea ]; then
-  GITEA_MISSING=
-  command -v tea >/dev/null 2>&1 || GITEA_MISSING="tea"
-  command -v jq >/dev/null 2>&1 || GITEA_MISSING="${GITEA_MISSING:+$GITEA_MISSING and }jq"
-  if [ -n "$GITEA_MISSING" ]; then
-    echo "error: watching a Gitea pull request requires $GITEA_MISSING on PATH" >&2
-    exit 1
-  fi
-  if ! tea login list -o csv 2>/dev/null | tail -n +2 | cut -d, -f1 | grep -qxF "$GITEA_LOGIN"; then
-    echo "error: watching a Gitea pull request needs a tea login named '$GITEA_LOGIN' for $HOST (run: tea login add --name $GITEA_LOGIN --url $HOST --token <token>)" >&2
-    exit 1
-  fi
-fi
-
 # The draft state is read before anything is recorded or armed. Only a positive
 # draft reading refuses, because an unreadable one must not block arming.
 if [ "$PROVIDER" = github ] && [ "${FM_PR_CHECK_MERGE:-}" != 1 ] && command -v gh >/dev/null 2>&1 && command -v jq >/dev/null 2>&1; then
@@ -166,20 +126,10 @@ fi
 # recorded and otherwise diffs the local branch, which is the current content.
 # bin/fm-pr-merge.sh reads a GitLab head live at merge time for the same reason,
 # and treats a recorded value that disagrees as stale rather than authoritative.
-# For Gitea the head is read through tea, pulling head.sha out of the raw API
-# JSON with jq (a Gitea watch requirement, checked above); bin/fm-pr-merge.sh
-# still reads the Gitea head live at merge time and treats a recorded value
-# that disagrees as stale, the same as for GitLab.
 WT=$(grep '^worktree=' "$META" | tail -1 | cut -d= -f2- || true)
 PR_HEAD=
 if [ "$PROVIDER" = github ] && [ -n "$WT" ] && [ -d "$WT" ] && command -v gh >/dev/null 2>&1; then
   if REMOTE_HEAD=$(cd "$WT" && gh pr view "$URL" --json headRefOid -q .headRefOid 2>/dev/null) \
-    && fm_pr_head_valid "$REMOTE_HEAD"; then
-    PR_HEAD=$REMOTE_HEAD
-  fi
-elif [ "$PROVIDER" = gitea ] && command -v jq >/dev/null 2>&1; then
-  if REMOTE_HEAD=$(tea api --login "$GITEA_LOGIN" "repos/$PR_OWNER/$PR_REPO/pulls/$NUMBER" 2>/dev/null \
-      | jq -r 'if type == "object" and (.head.sha | type == "string") then .head.sha else empty end' 2>/dev/null) \
     && fm_pr_head_valid "$REMOTE_HEAD"; then
     PR_HEAD=$REMOTE_HEAD
   fi
