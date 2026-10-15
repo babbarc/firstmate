@@ -241,7 +241,7 @@ $ echo $?
 
 By default, a project that runs no pipeline at all therefore cannot merge through this path.
 That is the intended reading of the requirement rather than an oversight: a successful pipeline at the head is a condition, and "there is no pipeline" does not satisfy it.
-The only exception is an attended `--allow-no-pipeline` on an explicit captain order, which waives exactly this null `head_pipeline` and nothing else; the header of `bin/fm-pr-merge.sh` owns its guards.
+The only exceptions are the attended `--allow-no-pipeline` and `--allow-no-ci`, on an explicit captain order: both waive exactly this null `head_pipeline` and nothing else, they are mutually exclusive, and the header of `bin/fm-pr-merge.sh` owns their guards.
 
 Both refusals came after `pr=` was recorded and the merge poll was armed, as a failed live verification or `gh pr merge` does on the GitHub side, so a refusal still leaves the audit trail and the watch in place.
 
