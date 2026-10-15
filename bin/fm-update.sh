@@ -4,6 +4,14 @@
 # Mechanical half of the /updatefirstmate skill. Fast-forwards the running
 # firstmate repo's default branch from origin, then fast-forwards every
 # registered secondmate home.
+# A default branch that carries a local patch stack - commits origin does not
+# have - is instead rebased: the stack is re-applied onto origin's tip (patches
+# origin already contains are dropped and named), and the checkout moves only
+# after every patch applied. A patch that no longer applies leaves the checkout
+# untouched, names the patch, and makes this script exit 3 after its summary.
+# While the primary carries such a stack, local secondmates follow the
+# primary's resulting commit instead of origin's, so they keep the same patches,
+# importing it from the primary first when a standalone clone lacks it.
 #
 # Self-update source. The optional local, gitignored, not-inherited
 # $FM_HOME/config/self-update-source replaces origin as the source for this
@@ -23,12 +31,15 @@
 # update before anything moves; it never falls back to origin. Nothing else
 # reads the file: worker spawns, review diffs, the cleanup landed-work test,
 # lint, and default-branch detection keep using origin. The fast-forward-only
-# guards still apply, so the named branch must only ever move forward.
+# guards still apply, so the named branch must only ever move forward, and the
+# patch-stack rebase above stays off while a source is configured.
 #
 # Local homes are treehouse worktrees or standalone clones; remote routes update
-# their configured code root on that host and then fast-forward the persistent
-# home to that root. FAST-FORWARD ONLY, exactly like
-# fm-fleet-sync.sh: never force, never create a merge commit, never stash.
+# their configured code root on that host (whose own fm-update.sh carries that
+# copy's patch stack the same way) and then fast-forward the persistent home to
+# that root. Never force, never create a merge commit, never stash; apart from
+# the patch-stack rebase above, every move is a fast-forward exactly like
+# fm-fleet-sync.sh.
 # A secondmate divergence whose complete local tree result is already present at
 # the target is reconciled with reset --keep; every other unsafe target is
 # skipped and reported, with divergence recorded durably by fm-ff-lib.sh.
@@ -172,7 +183,7 @@ if [ -n "$SELF_UPDATE_REMOTE" ]; then
     echo "firstmate: skipped: fetch of $SELF_UPDATE_REMOTE $SELF_UPDATE_BRANCH failed"
   fi
 else
-  ff_target "$FM_ROOT" "firstmate" origin no no
+  FF_CARRY_LOCAL_PATCHES=yes ff_target "$FM_ROOT" "firstmate" origin no no
 fi
 if [ "$FF_STATUS" = "updated" ]; then
   if [ -n "$FF_INSTR" ]; then
@@ -257,7 +268,9 @@ fm_ff_after_secondmate_settled() {  # <id> <home> <window> <status> <instr>
 }
 
 # The local secondmate target: origin by default, or the primary's resulting
-# default-branch commit under a configured self-update source (see header).
+# default-branch commit under a configured self-update source or while the
+# primary carries local patches origin lacks, so a pass never strips the patch
+# stack from a secondmate home (see header).
 secondmate_base=origin
 if [ -n "$SELF_UPDATE_REMOTE" ]; then
   if secondmate_base=$(primary_head_commit "$FM_ROOT"); then
@@ -265,6 +278,12 @@ if [ -n "$SELF_UPDATE_REMOTE" ]; then
   else
     secondmate_base=""
   fi
+elif primary_commit=$(primary_head_commit "$FM_ROOT") \
+  && primary_default=$(default_branch "$FM_ROOT") \
+  && git -C "$FM_ROOT" rev-parse --verify --quiet "refs/remotes/origin/$primary_default" >/dev/null \
+  && ! git -C "$FM_ROOT" merge-base --is-ancestor "$primary_commit" "refs/remotes/origin/$primary_default"; then
+  secondmate_base=$primary_commit
+  FF_IMPORT_FROM="$FM_ROOT"
 fi
 
 # Live direct reports first: state/<id>.meta with kind=secondmate carries the
@@ -344,3 +363,4 @@ fi
 echo "reread-firstmate: $reread_firstmate"
 echo "restart-secondmates:${FF_RESTART_WINDOWS:- none}"
 echo "nudge-secondmates:${FF_STEER_WINDOWS:- none}"
+[ "$FF_PATCH_FAILED" != yes ] || exit 3

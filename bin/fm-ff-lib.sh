@@ -39,6 +39,12 @@
 # fast-forward advances HEAD only and never moves the shared default branch or
 # any other worktree's checkout. A standalone remote home may instead advance
 # its checked-out default branch under the same guard.
+# A caller that sets FF_CARRY_LOCAL_PATCHES=yes (the primary leg of
+# bin/fm-update.sh) lets a default branch that carries local commits on top of
+# the base keep them: instead of skipping as diverged, rebase_local_patches
+# re-applies that local patch stack onto the base in the object store and moves
+# HEAD only once every patch applied, so a patch that no longer applies leaves
+# the checkout exactly where it was.
 
 SUB_HOME_MARKER="${SUB_HOME_MARKER:-.fm-secondmate-home}"
 # shellcheck source=bin/fm-secondmate-registry-lib.sh
@@ -345,6 +351,84 @@ divergence_is_redundant() { # <dir> <local-commit> <target-commit>
   return "$result"
 }
 
+# Re-apply the local patch stack - the commits LOCAL holds beyond its merge base
+# with TARGET - onto TARGET, oldest first, preserving each patch's message and
+# author. Every patch is replayed with merge-tree and commit-tree, so nothing
+# touches the index, the worktree, or any ref until the whole stack applied; the
+# one ref move is the final reset --keep of the clean checkout. A patch whose
+# replay changes nothing is already part of TARGET (its upstream PR merged) and
+# is dropped from the stack, and every such drop is reported by name. A patch
+# that conflicts stops the whole rebase with the checkout untouched, naming the
+# patch and its conflicted paths. Sets FF_STATUS/FF_INSTR like ff_target, and
+# FF_PATCH_FAILED=yes when the stack could not be carried. It is read by
+# bin/fm-update.sh after it sources this library, so it is exported rather than
+# file-local.
+export FF_PATCH_FAILED=""
+rebase_local_patches() { # <dir> <label> <base> <local-commit> <target-commit>
+  local dir=$1 label=$2 base=$3 local_commit=$4 target_commit=$5
+  local fork patches c tip tree tip_tree out short subject applied=0 dropped="" instr before after
+  fork=$(git -C "$dir" merge-base "$local_commit" "$target_commit" 2>/dev/null) || {
+    echo "$label: skipped: no common history with $base; local patch stack left in place"
+    return 0
+  }
+  if [ -n "$(git -C "$dir" rev-list --merges "$fork..$local_commit" 2>/dev/null)" ]; then
+    echo "$label: skipped: local patch stack on top of $base contains a merge commit; rebuild it as linear commits"
+    return 0
+  fi
+  patches=$(git -C "$dir" rev-list --reverse "$fork..$local_commit") || {
+    echo "$label: skipped: cannot list the local patch stack"
+    return 0
+  }
+  tip=$target_commit
+  for c in $patches; do
+    short=$(git -C "$dir" rev-parse --short "$c")
+    subject=$(git -C "$dir" log -1 --format=%s "$c")
+    if ! out=$(git -C "$dir" merge-tree --write-tree --name-only --no-messages \
+        --merge-base "$c^" "$tip" "$c" 2>&1); then
+      echo "$label: FAILED: local patch $short ($subject) no longer applies onto $base; conflicts: $(printf '%s\n' "$out" | sed -n '2,$p' | sed '/^$/d' | paste -sd ' ' -)"
+      echo "$label: left unchanged at $(git -C "$dir" rev-parse --short HEAD); no patch was applied or dropped"
+      FF_PATCH_FAILED=yes
+      return 0
+    fi
+    tree=$(printf '%s\n' "$out" | sed -n 1p)
+    tip_tree=$(git -C "$dir" rev-parse "$tip^{tree}")
+    if [ "$tree" = "$tip_tree" ]; then
+      dropped="$dropped$short $subject"$'\n'
+      continue
+    fi
+    if ! tip=$(git -C "$dir" log -1 --format=%B "$c" | \
+        GIT_AUTHOR_NAME=$(git -C "$dir" log -1 --format=%an "$c") \
+        GIT_AUTHOR_EMAIL=$(git -C "$dir" log -1 --format=%ae "$c") \
+        GIT_AUTHOR_DATE=$(git -C "$dir" log -1 --format=%ad --date=raw "$c") \
+        git -C "$dir" commit-tree "$tree" -p "$tip" 2>&1); then
+      echo "$label: FAILED: cannot record rebased patch $short ($subject): $(first_line "$tip")"
+      echo "$label: left unchanged at $(git -C "$dir" rev-parse --short HEAD); no patch was applied or dropped"
+      FF_PATCH_FAILED=yes
+      return 0
+    fi
+    applied=$((applied + 1))
+  done
+  instr=$(changed_instr "$dir" "$tip")
+  before=$(git -C "$dir" rev-parse --short HEAD)
+  if ! out=$(git -C "$dir" reset --keep "$tip" 2>&1); then
+    echo "$label: FAILED: rebased patch stack could not be checked out: $(first_line "$out")"
+    echo "$label: left unchanged at $before; no patch was applied or dropped"
+    FF_PATCH_FAILED=yes
+    return 0
+  fi
+  after=$(git -C "$dir" rev-parse --short HEAD)
+  FF_STATUS="updated"
+  FF_INSTR="$instr"
+  echo "$label: rebased $applied local patch(es) onto $base $before..$after${instr:+ (instructions changed: $instr)}"
+  while IFS= read -r c; do
+    [ -n "$c" ] || continue
+    echo "$label: dropped local patch ${c%% *} (${c#* }): already in $base"
+  done <<EOF
+$dropped
+EOF
+  return 0
+}
+
 # List this home's LIVE secondmate direct reports from state/<id>.meta records.
 # The meta file is the liveness signal; data/secondmates.md is only the fallback
 # for durable fields such as home= when an older/incomplete meta lacks them.
@@ -466,6 +550,15 @@ ff_target() {
     return 0
   fi
   if ! git -C "$dir" merge-base --is-ancestor HEAD "$base" 2>/dev/null; then
+    if [ "${FF_CARRY_LOCAL_PATCHES:-no}" = yes ] && [ -z "$secondmate_id" ]; then
+      if git -C "$dir" merge-base --is-ancestor "$base" HEAD 2>/dev/null; then
+        FF_STATUS="current"
+        echo "$label: already current (carrying $(git -C "$dir" rev-list --count "$base..HEAD") local patch(es) on $base)"
+        return 0
+      fi
+      rebase_local_patches "$dir" "$label" "$base" "$local_rev" "$base_rev"
+      return 0
+    fi
     if [ -n "$secondmate_id" ] && [ -n "$reconciliation_state" ] \
       && divergence_is_redundant "$dir" "$local_rev" "$base_rev"; then
       instr=$(changed_instr "$dir" "$base")

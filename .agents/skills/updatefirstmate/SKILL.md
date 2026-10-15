@@ -28,7 +28,11 @@ The only live mates that do not restart are the ones whose home the update pass 
 **One-time rollout note:** the update that carries this change is still executed by the previous release, which restarts only the mates whose `AGENTS.md` or `.agents/skills/` moved on that pass. After it completes, run `bin/fm-secondmate-restart.sh <fm-id>...` once with every live second mate ID, not only the ones that release named; later updates follow the normal flow below.
 
 The source is `origin` unless this home has `config/self-update-source`, which names one remote branch for the primary to follow instead, with local secondmates following the primary's resulting commit; [`docs/configuration.md`](../../../docs/configuration.md#self-update-source-configself-update-source) owns that contract, including its remote-secondmate limit.
-The primary update is fast-forward only, while each secondmate uses the same guarded convergence path plus one narrow recovery for squash-merged local history.
+The primary update is a fast-forward, except when its default branch carries a local patch stack - commits origin does not have - and no self-update source is configured.
+Then the updater rebases that stack onto origin's tip instead: patches keep their order, message, and author, a patch origin already contains (its upstream PR merged) is dropped and named, and the checkout moves only after every patch applied.
+A patch that no longer applies stops the primary update with the checkout untouched, names the patch and its conflicted paths, and makes the updater exit 3 after its summary.
+While the primary carries a patch stack, local secondmates follow the primary's resulting commit rather than origin's, so they keep the same patches.
+Each secondmate uses the same guarded convergence path plus one narrow recovery for squash-merged local history, which is also how a secondmate moves from the old patched commit to the rebased one.
 For a remote route, it updates the configured Firstmate code root on that host from its own origin, then guardedly fast-forwards the persistent home to that code-root commit.
 It never forces, never creates a merge commit, and never stashes.
 A clean secondmate divergence advances with `reset --keep` only when a three-way tree proof shows its complete local result is already present at the target, which recognizes squash-merged contributions without discarding unique content.
@@ -44,7 +48,7 @@ This touches only the firstmate repo and its own worktrees, never anything under
    ```
    It fast-forwards this firstmate repo's default branch from origin, or from the configured self-update source, then updates every registered local or remote secondmate home through its placement-specific guarded path.
    When a source is configured it prints a `self-update source:` line first, and an unusable config file stops the whole update before anything moves; report that file to the captain rather than editing or removing it.
-   It prints one status line per target (`updated <old>..<new>` / `reconciled redundant divergence <old>..<new>` / `already current` / `skipped: <reason>`), followed by three action lines that tell you exactly what to do next:
+   It prints one status line per target (`updated <old>..<new>` / `rebased <n> local patch(es) onto origin/<branch> <old>..<new>` / `reconciled redundant divergence <old>..<new>` / `already current` / `skipped: <reason>` / `FAILED: <reason>`), followed by three action lines that tell you exactly what to do next:
    - `reread-firstmate: yes|no`
    - `restart-secondmates: fm-<id>...|none`
    - `nudge-secondmates: fm-<id>...|none`
@@ -53,6 +57,7 @@ This touches only the firstmate repo and its own worktrees, never anything under
    `restart-secondmates:` carries every live mate the pass left on the latest commit, whether it advanced or was already there.
    A mate reaches neither set only because its home was skipped, because it has no live endpoint recorded here, or because its endpoint was positively classified as dead or missing.
    A skipped genuine divergence still requires attention through its durable reconciliation record; the other two cases need no update action from you.
+   A `firstmate: FAILED: local patch <sha> (<subject>) no longer applies` line means upstream changed what that patch touches: the primary is unchanged, and the patch must be dropped (when its upstream PR merged in a different form) or refreshed before the next update can carry the stack.
 
 2. **Re-read AGENTS.md if your own instructions changed.**
    When the updater printed `reread-firstmate: yes`, the tracked instruction surface (`AGENTS.md`, `bin/`, or `.agents/skills/`) just advanced under you.

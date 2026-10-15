@@ -22,6 +22,11 @@
 #     restart is also what re-resolves launch-time harness wiring; a live mate
 #     whose runtime cannot prove a restart falls to nudge-secondmates; and a mate
 #     whose home was skipped or whose endpoint is stopped gets no action at all.
+#   - A primary default branch carrying a local patch stack is rebased onto
+#     origin rather than skipped: patches keep order, message, and author, a
+#     patch origin already holds is dropped by name, a patch that no longer
+#     applies fails the run with the checkout untouched, and secondmates follow
+#     the primary's rebased commit instead of origin's.
 #   - Secondmate homes resolve from both state/<id>.meta and the
 #     data/secondmates.md registry, deduped, and the firstmate repo is never
 #     re-processed as one of its own secondmates.
@@ -489,7 +494,7 @@ test_firstmate_wrong_branch_skipped() {
 
 test_firstmate_detached_head_skipped() {
   local w out before
-  w=$(new_world t10)
+  w=$(new_world p1)
   bump_origin "$w" instr
   git -C "$w/main" checkout -q --detach HEAD
   before=$(git -C "$w/main" rev-parse HEAD)
@@ -505,7 +510,7 @@ test_firstmate_detached_head_skipped() {
 
 test_unsafe_secondmate_home_skipped_before_git_update() {
   local w out bad before
-  w=$(new_world t11)
+  w=$(new_world p2)
   bad="$w/home/projects/bad"
   mkdir -p "$w/home/projects"
   git clone -q "$w/origin.git" "$bad"
@@ -531,7 +536,7 @@ test_unsafe_secondmate_home_skipped_before_git_update() {
 # tampering involved; without a rebind the very next fire would be refused.
 test_primary_update_rebinds_local_watch() {
   local w before_hash after_hash out spec
-  w=$(new_world t12)
+  w=$(new_world p3)
   mkdir -p "$w/seed/bin"
   printf "#!/usr/bin/env bash\necho v1 >> \"\$1\"\n" > "$w/seed/bin/watched-action.sh"
   chmod +x "$w/seed/bin/watched-action.sh"
@@ -633,12 +638,13 @@ test_self_update_source_follows_branch() {
   assert_not_contains "$out" "nudge-secondmates: fm" "restartable mates are not nudged"
 
   # Removing the file returns to origin; the carried commit is not in origin, so
-  # that path now reports divergence and moves nothing.
+  # that path now treats it as the primary's local patch stack.
   rm "$w/home/config/self-update-source"
   out=$(run_update "$w")
   assert_not_contains "$out" "self-update source:" "an absent file must not announce a source"
-  assert_contains "$out" "firstmate: skipped: diverged from origin/main" "without the file the origin path is used"
-  assert_equals "$(git -C "$w/main" rev-parse HEAD)" "$carry" "the origin path moved a diverged primary"
+  assert_contains "$out" "firstmate: rebased 1 local patch(es) onto origin/main" "without the file the origin path is used"
+  git -C "$w/main" merge-base --is-ancestor origin/main HEAD || fail "the origin path did not land on origin's tip"
+  assert_equals "carried-fix" "$(git -C "$w/main" log --format=%s origin/main..HEAD)" "the carried commit was not kept as the local patch stack"
   pass "T13 config/self-update-source moves the primary and its local secondmates to that branch"
 }
 
@@ -691,6 +697,120 @@ test_self_update_source_rewrite_is_skipped() {
   pass "T15 a non-fast-forward self-update source is skipped, never forced"
 }
 
+# --- T16: a local patch stack on the primary is rebased, not dropped ---------
+# Commit a local patch on the primary's main. Args: world file content subject.
+add_primary_patch() {
+  local w=$1 file=$2 content=$3 subject=$4
+  printf '%s\n' "$content" > "$w/main/$file"
+  git -C "$w/main" add -- "$file"
+  GIT_AUTHOR_NAME=patcher GIT_AUTHOR_EMAIL=patcher@example.com \
+    git -C "$w/main" commit -qm "$subject"
+}
+
+run_update_rc() {
+  RUN_RC=0
+  RUN_OUT=$(run_update "$1") || RUN_RC=$?
+}
+
+test_local_patch_stack_rebases_onto_origin() {
+  local w out tip
+  w=$(new_world stack1)
+  add_primary_patch "$w" bin/tool.sh 'echo patched' 'fleet: patch tool'
+  add_primary_patch "$w" .agents/skills/fleet.md 'fleet note' 'fleet: add note'
+  add_sm "$w" sm1
+  bump_origin "$w" readme
+
+  out=$(run_update "$w")
+
+  assert_contains "$out" "firstmate: rebased 2 local patch(es) onto origin/main" "the patch stack was not rebased"
+  assert_contains "$out" "reread-firstmate: no" "re-carrying unchanged patches over a README-only advance asked for a reread"
+  git -C "$w/main" merge-base --is-ancestor origin/main HEAD || fail "rebased main does not contain origin's tip"
+  [ "$(git -C "$w/main" rev-list --count origin/main..HEAD)" -eq 2 ] || fail "rebased main lost or gained a patch"
+  [ "$(git -C "$w/main" log --format=%s origin/main..HEAD | paste -sd '|' -)" = 'fleet: add note|fleet: patch tool' ] \
+    || fail "rebased patches lost their order or messages"
+  [ "$(git -C "$w/main" log --format=%ae origin/main..HEAD | sort -u)" = patcher@example.com ] \
+    || fail "rebased patches lost their author"
+  [ "$(cat "$w/main/bin/tool.sh")" = 'echo patched' ] || fail "patch content was not carried"
+  grep -qx 'r-readme' "$w/main/README.md" || fail "origin's new commit did not land"
+  [ "$(git -C "$w/main" symbolic-ref --short HEAD)" = main ] || fail "primary left its default branch"
+  [ -z "$(git -C "$w/main" status --porcelain)" ] || fail "rebase left the primary dirty"
+  tip=$(git -C "$w/main" rev-parse HEAD)
+  assert_contains "$out" "secondmate sm1: reconciled redundant divergence" "the secondmate did not follow the rebased primary"
+  [ "$(git -C "$w/sm1" rev-parse HEAD)" = "$tip" ] || fail "secondmate is not on the primary's rebased tip"
+  assert_contains "$out" "restart-secondmates: fm-sm1" "the followed secondmate was not restarted"
+
+  out=$(run_update "$w")
+  assert_contains "$out" "firstmate: already current (carrying 2 local patch(es) on origin/main)" \
+    "a second pass did not recognize the carried stack as current"
+  [ "$(git -C "$w/main" rev-parse HEAD)" = "$tip" ] || fail "an idle pass rewrote the patch stack"
+  assert_contains "$out" "secondmate sm1: already current" "the secondmate did not stay on the primary's tip"
+
+  bump_origin "$w" readme
+  out=$(run_update "$w")
+  assert_contains "$out" "firstmate: rebased 2 local patch(es) onto origin/main" "a later upstream commit was not rebased onto"
+  [ "$(git -C "$w/sm1" rev-parse HEAD)" = "$(git -C "$w/main" rev-parse HEAD)" ] \
+    || fail "the secondmate did not follow the second rebase"
+  pass "T16 a local patch stack rebases onto origin, stays current, and carries secondmates along"
+}
+
+test_conflicting_patch_fails_without_change() {
+  local w before sm_before
+  w=$(new_world stack2)
+  add_primary_patch "$w" README.md 'fleet readme' 'fleet: readme patch'
+  add_sm "$w" sm1
+  before=$(git -C "$w/main" rev-parse HEAD)
+  sm_before=$(git -C "$w/sm1" rev-parse HEAD)
+  bump_origin "$w" readme
+
+  run_update_rc "$w"
+
+  [ "$RUN_RC" -eq 3 ] || fail "a patch that no longer applies did not fail the update (rc=$RUN_RC)"
+  assert_contains "$RUN_OUT" "firstmate: FAILED: local patch $(git -C "$w/main" rev-parse --short "$before") (fleet: readme patch) no longer applies onto origin/main; conflicts: README.md" \
+    "the failure did not name the patch and its conflict"
+  [ "$(git -C "$w/main" rev-parse HEAD)" = "$before" ] || fail "a failed rebase moved the primary"
+  [ -z "$(git -C "$w/main" status --porcelain)" ] || fail "a failed rebase left the primary dirty"
+  [ ! -d "$(git -C "$w/main" rev-parse --git-path rebase-merge)" ] || fail "a failed rebase left rebase state"
+  [ "$(git -C "$w/sm1" rev-parse HEAD)" = "$sm_before" ] || fail "a failed primary rebase moved the secondmate"
+  assert_not_contains "$RUN_OUT" "secondmate sm1: skipped" "the secondmate was pushed off the primary's patches"
+  pass "T17 a conflicting patch fails loudly, names itself, and changes nothing"
+}
+
+test_patch_merged_upstream_is_dropped_by_name() {
+  local w out
+  w=$(new_world stack3)
+  add_primary_patch "$w" bin/tool.sh 'echo merged-upstream' 'fleet: tool fix'
+  add_primary_patch "$w" .agents/skills/fleet.md 'fleet note' 'fleet: add note'
+  git -C "$w/seed" pull -q origin main >/dev/null 2>&1 || true
+  printf 'echo merged-upstream\n' > "$w/seed/bin/tool.sh"
+  git -C "$w/seed" commit -qam 'upstream: take the tool fix'
+  git -C "$w/seed" push -q origin main
+
+  out=$(run_update "$w")
+
+  assert_contains "$out" "firstmate: rebased 1 local patch(es) onto origin/main" "the remaining patch was not carried"
+  assert_contains "$out" "(fleet: tool fix): already in origin/main" "the upstreamed patch was not reported as dropped"
+  [ "$(git -C "$w/main" log --format=%s origin/main..HEAD)" = 'fleet: add note' ] \
+    || fail "the stack after the drop is wrong"
+  pass "T18 a patch upstream already carries is dropped and named"
+}
+
+test_local_patch_stack_reaches_a_standalone_secondmate() {
+  local w out tip
+  w=$(new_world stack4)
+  add_primary_patch "$w" bin/tool.sh 'echo patched' 'fleet: patch tool'
+  add_standalone_sm "$w" sm2
+  bump_origin "$w" readme
+
+  out=$(run_update "$w")
+
+  tip=$(git -C "$w/main" rev-parse HEAD)
+  assert_contains "$out" "firstmate: rebased 1 local patch(es) onto origin/main" "the patch stack was not rebased"
+  [ "$(git -C "$w/sm2" rev-parse HEAD)" = "$tip" ] \
+    || fail "a standalone-clone secondmate did not import the primary's rebased commit: $out"
+  [ "$(cat "$w/sm2/bin/tool.sh")" = 'echo patched' ] || fail "the standalone secondmate lost the carried patch"
+  pass "T19 a standalone-clone secondmate imports the primary's rebased patch stack"
+}
+
 test_updates_main_and_secondmate
 test_reread_gate_is_instruction_only
 test_bin_only_advance_restarts
@@ -710,5 +830,9 @@ test_primary_update_rebinds_local_watch
 test_self_update_source_follows_branch
 test_self_update_source_refuses_unusable_config
 test_self_update_source_rewrite_is_skipped
+test_local_patch_stack_rebases_onto_origin
+test_conflicting_patch_fails_without_change
+test_patch_merged_upstream_is_dropped_by_name
+test_local_patch_stack_reaches_a_standalone_secondmate
 
 echo "# all fm-update tests passed"

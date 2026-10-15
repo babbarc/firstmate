@@ -1339,7 +1339,7 @@ The script header owns the transcript read, the state file, and the block messag
 The optional local, gitignored `config/self-update-source` changes where `/updatefirstmate` takes the running firstmate from, and nothing else.
 It suits a home that runs its own fixes before upstream merges them, by following a branch that holds upstream's default branch plus those fixes, for example a `carry` branch on a fork.
 It holds one line, `<remote> <branch>`, for example `fork carry`, naming a remote that already exists in this repository and a branch on that remote.
-When the file is absent, `/updatefirstmate` fast-forwards from `origin` exactly as before.
+When the file is absent, `/updatefirstmate` follows `origin`, fast-forwarding the primary or, when its default branch carries local patches, rebasing them onto `origin` as [`bin/fm-update.sh`](../bin/fm-update.sh) describes.
 
 When it is present, [`bin/fm-update.sh`](../bin/fm-update.sh) fetches only that branch and fast-forwards the primary to it under the same guards as the origin path: a dirty, off-default, or diverged primary is skipped and left untouched, so the named branch must only ever move forward.
 Local secondmate homes then advance to the primary's resulting default-branch commit, the same commit the startup secondmate sync follows, and a standalone-clone home that lacks that commit imports it from the primary first.
@@ -1347,7 +1347,7 @@ A remote secondmate's host runs its own update against its own code root, so a r
 Worker spawns, review diffs, the cleanup landed-work test, lint, and default-branch detection keep using `origin`, so work started in this home still branches from, and is judged against, upstream.
 An unreadable or malformed file, an unknown remote, or an invalid branch name stops the whole update before anything moves and names the file; it never falls back to `origin`.
 The file is per home and is not inherited by secondmate homes.
-To stop following the branch, remove the file; a primary already ahead of `origin` is then reported as diverged until it is brought back by hand.
+To stop following the branch, remove the file; commits the primary then holds beyond `origin` become its local patch stack on the next update.
 The script's header owns the exact parsing and the per-home outcome lines.
 
 ## Secondmate routes (data/secondmates.md)
