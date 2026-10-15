@@ -1,0 +1,110 @@
+== Forgejo repo with no CI (combined status total_count=0, state none) - the server-ops PR 52 shape ==
+$ fm-pr-merge.sh task-x1 https://forgejo.example/fixture/fixture-repo/pulls/9     # attended, no flag (previous behavior, still refuses)
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://forgejo.example/fixture/fixture-repo/pulls/9
+  - the combined commit status is "none", not success
+armed: state/task-x1.check.sh
+[exit 1]
+forge merge call: (none)
+
+$ fm-pr-merge.sh task-x1 https://forgejo.example/fixture/fixture-repo/pulls/9 --allow-no-ci    # attended, with --allow-no-ci
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://forgejo.example/fixture/fixture-repo/pulls/9 is open and mergeable, with no commit status at all (allowed by --allow-no-ci) at head cccccccccccccccccccccccccccccccccccccccc
+armed: state/task-x1.check.sh
+[exit 0]
+forge merge call: api --login fm-fixture --repo fixture/fixture-repo -X POST /repos/{owner}/{repo}/pulls/9/merge -f Do=merge -f head_commit_id=cccccccccccccccccccccccccccccccccccccccc
+(none)
+
+$ fm-pr-merge.sh task-x1 https://forgejo.example/fixture/fixture-repo/pulls/9 --allow-no-ci    # non-empty pending status, with --allow-no-ci
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://forgejo.example/fixture/fixture-repo/pulls/9
+  - the combined commit status is "pending", not success
+armed: state/task-x1.check.sh
+[exit 1]
+forge merge call: (none)
+
+$ fm-pr-merge.sh task-x1 https://forgejo.example/fixture/fixture-repo/pulls/9 --allow-no-ci    # non-empty failing status, with --allow-no-ci
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://forgejo.example/fixture/fixture-repo/pulls/9
+  - the combined commit status is "failure", not success
+armed: state/task-x1.check.sh
+[exit 1]
+forge merge call: (none)
+
+$ fm-pr-merge.sh task-x1 https://forgejo.example/fixture/fixture-repo/pulls/9 --allow-no-ci    # away posture, with --allow-no-ci
+error: --allow-no-ci is attended-only; while the away-posture record exists a head with no pipeline or commit status refuses
+[exit 2]
+forge merge call: (none)
+
+== GitLab project with no CI (head_pipeline null) ==
+$ fm-pr-merge.sh task-x1 https://gitlab.example/group/subgroup/project/-/merge_requests/7     # attended, no flag
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://gitlab.example/group/subgroup/project/-/merge_requests/7
+  - the head pipeline status is "none", not success
+  - the head pipeline ran at "none", not at the current head aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+armed: state/task-x1.check.sh
+[exit 1]
+forge merge call: (none)
+
+$ fm-pr-merge.sh task-x1 https://gitlab.example/group/subgroup/project/-/merge_requests/7 --allow-no-ci    # attended, with --allow-no-ci
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+verified: https://gitlab.example/group/subgroup/project/-/merge_requests/7 is open and mergeable, with no pipeline at all (allowed by --allow-no-ci) at head aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+armed: state/task-x1.check.sh
+[exit 0]
+forge merge call: GITLAB_HOST=gitlab.example mr merge 7 -R https://gitlab.example/group/subgroup/project --sha aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa --yes
+
+$ fm-pr-merge.sh task-x1 https://gitlab.example/group/subgroup/project/-/merge_requests/7 --allow-no-ci    # failed pipeline, with --allow-no-ci
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+●  WATCHER DOWN - SUPERVISION IS OFF
+●  1 task(s) in flight, but no watcher has a fresh beacon (last beat: never, grace 300s).
+●  Trust the emitted supervision protocol for this harness; do not use shell & for watcher repair.
+●  This is a supervision warning only; the guarded operation WILL still run.
+●  watcher supervision needs Stop-owned automatic recovery; inspect the hook registration and startup status before ending the turn.
+●━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+error: refusing to merge https://gitlab.example/group/subgroup/project/-/merge_requests/7
+  - the head pipeline status is "failed", not success
+armed: state/task-x1.check.sh
+[exit 1]
+forge merge call: (none)
+
+$ fm-pr-merge.sh task-x1 https://gitlab.example/group/subgroup/project/-/merge_requests/7 --allow-no-ci    # away posture, with --allow-no-ci
+error: --allow-no-ci is attended-only; while the away-posture record exists a head with no pipeline or commit status refuses
+[exit 2]
+forge merge call: (none)
+
