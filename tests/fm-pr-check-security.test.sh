@@ -8,8 +8,6 @@ set -u
 # shellcheck source=/dev/null
 . "$ROOT/bin/fm-pr-lib.sh"
 # shellcheck source=/dev/null
-. "$ROOT/bin/fm-pr-gitea-lib.sh"
-# shellcheck source=/dev/null
 . "$ROOT/bin/fm-check-lib.sh"
 
 PR_CHECK="$ROOT/bin/fm-pr-check.sh"
@@ -224,53 +222,6 @@ printf '%s\n' "$*" >> "$FM_TEST_GLAB_LOG"
 [ "${FM_TEST_GLAB_SLEEP:-0}" = 0 ] || sleep "$FM_TEST_GLAB_SLEEP"
 printf 'title:\tfixture merge request\nstate:\t%s\nauthor:\tsomeone\n' "${FM_TEST_GLAB_STATE:-opened}"
 SH
-  # tea, reproducing the parts fm-pr-* use: "login list -o csv" (header plus one
-  # row per configured login), "api ... repos/<o>/<r>/pulls/<n>" (raw Gitea JSON
-  # on stdout, non-zero with no stdout on failure), and "pr merge" (records the
-  # invocation, exit governed by FM_TEST_TEA_MERGE_FAIL).
-  cat > "$fakebin/tea" <<'SH'
-#!/usr/bin/env bash
-printf '%s\n' "$*" >> "$FM_TEST_TEA_LOG"
-case "$1" in
-  login)
-    [ "$2" = list ] || exit 0
-    printf 'Name,URL,SSH Host,User,Default\n'
-    IFS=, read -ra _logins <<< "${FM_TEST_TEA_LOGINS-firstmate-alps-3222}"
-    for _l in "${_logins[@]}"; do
-      [ -n "$_l" ] || continue
-      printf '%s,http://alps:3222,,firstmate,true\n' "$_l"
-    done
-    exit 0
-    ;;
-  api)
-    [ "${FM_TEST_TEA_API_FAIL:-0}" = 0 ] || exit 1
-    _merged=${FM_TEST_TEA_MERGED-false}
-    _state=${FM_TEST_TEA_STATE-open}
-    _mergeable=${FM_TEST_TEA_MERGEABLE-true}
-    _head=${FM_TEST_TEA_HEAD:-0123456789abcdef0123456789abcdef01234567}
-    [ "${FM_TEST_TEA_API_GARBAGE:-0}" = 0 ] || { printf 'not json\n'; exit 0; }
-    if [ "${FM_TEST_TEA_API_NESTED_TRUE:-0}" != 0 ]; then
-      # Top-level merged is false, but a nested object also carries a "merged"
-      # key set true - a top-level-anchored read must not be fooled by it.
-      printf '{"state":"closed","merged":false,"head":{"sha":"%s"},"base":{"repo":{"merged":true}},"comments":[{"merged":true}]}\n' "$_head"
-      exit 0
-    fi
-    printf '{"state":"%s","merged":%s,"mergeable":%s,"head":{"sha":"%s"},"html_url":"http://alps:3222/o/r/pulls/1"}\n' \
-      "$_state" "$_merged" "$_mergeable" "$_head"
-    exit 0
-    ;;
-  pr|pulls)
-    case "$2" in
-      merge)
-        [ "${FM_TEST_TEA_MERGE_FAIL:-0}" = 0 ] || { echo "tea: merge failed" >&2; exit 1; }
-        exit 0
-        ;;
-    esac
-    exit 0
-    ;;
-esac
-exit 0
-SH
   # gerrit-axi, reproducing the real CLI's contract: one JSON record on stdout
   # and exit 0 on success, and a non-zero exit with no stdout on any failure.
   # Its defaults are the real server's readings for an OPEN change, and the
@@ -315,16 +266,11 @@ if [ -n "${FM_TEST_NM_NEXT_ACTION:-}" ]; then
   printf '  next_action:\n    code: %s\n    command: no-mistakes axi status\n' "$FM_TEST_NM_NEXT_ACTION"
 fi
 SH
-  chmod +x "$fakebin/gh" "$fakebin/gh-axi" "$fakebin/glab" "$fakebin/tea" "$fakebin/gerrit-axi"
+  chmod +x "$fakebin/gh" "$fakebin/gh-axi" "$fakebin/glab" "$fakebin/gerrit-axi"
   chmod +x "$fakebin/no-mistakes"
-  # The Gitea poll and merge paths parse tea's raw API JSON with the real jq,
-  # and BASE_PATH is deliberately restricted, so expose it here rather than
-  # depending on the host keeping jq in one of those directories.
-  ln -sf "$REAL_JQ" "$fakebin/jq"
   : > "$dir/gh.log"
   : > "$dir/gh-axi.log"
   : > "$dir/glab.log"
-  : > "$dir/tea.log"
   : > "$dir/gerrit-axi.log"
   : > "$dir/guard.log"
   printf '%s\n' "$dir"
@@ -361,7 +307,6 @@ run_check_entry() {
   FM_ROOT_OVERRIDE="$dir/root" FM_HOME="$dir/home" \
     FM_TEST_GUARD_LOG="$dir/guard.log" FM_TEST_GH_LOG="$dir/gh.log" \
     FM_TEST_GH_AXI_LOG="$dir/gh-axi.log" FM_TEST_GLAB_LOG="$dir/glab.log" \
-    FM_TEST_TEA_LOG="$dir/tea.log" \
     FM_TEST_GERRIT_AXI_LOG="$dir/gerrit-axi.log" \
     PATH="$dir/fakebin:$BASE_PATH" \
     "$PR_CHECK" "$@"
@@ -373,7 +318,6 @@ run_merge_entry() {
   FM_ROOT_OVERRIDE="$dir/root" FM_HOME="$dir/home" \
     FM_TEST_GUARD_LOG="$dir/guard.log" FM_TEST_GH_LOG="$dir/gh.log" \
     FM_TEST_GH_AXI_LOG="$dir/gh-axi.log" FM_TEST_GLAB_LOG="$dir/glab.log" \
-    FM_TEST_TEA_LOG="$dir/tea.log" \
     FM_TEST_GERRIT_AXI_LOG="$dir/gerrit-axi.log" \
     PATH="$dir/fakebin:$BASE_PATH" \
     "$PR_MERGE" "$@"
@@ -559,47 +503,6 @@ https://gitlab.com/group/sub/deep/project/-/merge_requests/42|gitlab.com|group/s
 https://gitlab.example.co.uk/g/p/-/merge_requests/7|gitlab.example.co.uk|g/p|7
 https://code.internal/team/tools/ci-runner/-/merge_requests/123456|code.internal|team/tools/ci-runner|123456
 EOF
-  # Gitea/Forgejo: base URL kept whole as the host, owner/repo like GitHub,
-  # plural /pulls/. http and a non-default port are both legal in the shape.
-  while IFS='|' read -r url host path owner repo number; do
-    [ -n "$url" ] || continue
-    fm_pr_url_parse "$url" || fail "parser rejected a canonical Gitea pull request URL"
-    [ "$FM_PR_PROVIDER" = gitea ] || fail "parser did not tag a Gitea URL as gitea"
-    [ "$FM_PR_URL" = "$url" ] || fail "parser changed a canonical Gitea URL"
-    [ "$FM_PR_HOST" = "$host" ] || fail "parser returned wrong Gitea base URL"
-    [ "$FM_PR_PATH" = "$path" ] || fail "parser returned wrong Gitea project path"
-    [ "$FM_PR_OWNER" = "$owner" ] || fail "parser returned wrong Gitea owner"
-    [ "$FM_PR_REPO" = "$repo" ] || fail "parser returned wrong Gitea repository"
-    [ "$FM_PR_NUMBER" = "$number" ] || fail "parser returned wrong Gitea pull request number"
-    [ "$FM_PR_URL" = "$FM_PR_HOST/$FM_PR_PATH/pulls/$FM_PR_NUMBER" ] \
-      || fail "parsed Gitea identity does not reconstruct the stored URL"
-  done <<'EOF'
-http://alps:3222/babbarc/dotfiles/pulls/1|http://alps:3222|babbarc/dotfiles|babbarc|dotfiles|1
-https://gitea.example.com/org/repo-name_with.parts/pulls/123456|https://gitea.example.com|org/repo-name_with.parts|org|repo-name_with.parts|123456
-https://forgejo.internal:8443/team/tools/pulls/7|https://forgejo.internal:8443|team/tools|team|tools|7
-EOF
-  # A doctored Gitea URL whose parts would not reconstruct it is refused, as is
-  # every non-shape variant.
-  for row in \
-    'http://alps:3222/babbarc/dotfiles/pulls/01' \
-    'http://alps:3222/babbarc/dotfiles/pulls/0' \
-    'http://alps:3222/a/b/c/pulls/1' \
-    'http://alps:3222/babbarc/pulls/1' \
-    'http://github.com/o/r/pulls/1' \
-    'https://gitlab.com/o/r/pulls/1' \
-    'http://alps:99999/o/r/pulls/1' \
-    'http://alps:0/o/r/pulls/1' \
-    'http://alps:3222/o/r.git/pulls/1' \
-    'http://alps:3222/-o/r/pulls/1' \
-    'http://alps:3222/o/r/pulls/1/' \
-    'http://alps:3222/o/r/pulls/1?x=1' \
-    'http://alps:3222/o/r/pulls/1#f' \
-    'ftp://alps:3222/o/r/pulls/1' \
-    'http://ALPS:3222/o/r/pulls/1' \
-    'http://alps:3222//r/pulls/1'; do
-    ! fm_pr_url_parse "$row" || fail "parser accepted a rejected Gitea URL: $row"
-  done
-
   # A Gerrit project is one nested name, so the whole path is the identity and
   # is never flattened into an owner/repository pair that cannot address it.
   while IFS='|' read -r url host path number; do
@@ -618,6 +521,30 @@ https://gerrit.example/c/proj/+/1|gerrit.example|proj|1
 https://gerrit.example.co.uk/c/a/b/c/d/+/42|gerrit.example.co.uk|a/b/c/d|42
 https://review.internal/c/All-Projects/+/123456|review.internal|All-Projects|123456
 EOF
+  while IFS='|' read -r url host owner repo number; do
+    [ -n "$url" ] || continue
+    fm_pr_url_parse "$url" || fail "parser rejected a canonical Forgejo pull request URL"
+    [ "$FM_PR_PROVIDER" = forgejo ] || fail "parser did not tag a plural-pulls URL as forgejo"
+    [ "$FM_PR_URL" = "$url" ] || fail "parser changed a canonical Forgejo pull request URL"
+    [ "$FM_PR_HOST" = "$host" ] || fail "parser returned wrong Forgejo host"
+    [ "$FM_PR_PATH" = "$owner/$repo" ] || fail "parser returned wrong Forgejo project path"
+    [ "$FM_PR_OWNER" = "$owner" ] || fail "parser returned wrong Forgejo owner"
+    [ "$FM_PR_REPO" = "$repo" ] || fail "parser returned wrong Forgejo repository"
+    [ "$FM_PR_NUMBER" = "$number" ] || fail "parser returned wrong Forgejo pull request number"
+  done <<'EOF'
+https://git.example.com/fixture/fixture-repo/pulls/1|git.example.com|fixture|fixture-repo|1
+https://code.internal/my-org/repo.name_with-parts/pulls/123456|code.internal|my-org|repo.name_with-parts|123456
+EOF
+  # A Forgejo-shaped URL on github.com is refused (anti-spoofing, mirroring
+  # fm_pr_forge_host_valid's refusal of github.com), and neither GitHub's
+  # singular "pull" nor GitLab's "/-/merge_requests/" is accepted as forgejo.
+  for row in \
+    'https://github.com/fixture/fixture-repo/pulls/1' \
+    'https://git.example.com/fixture/fixture-repo/pull/1' \
+    'https://git.example.com/group/sub/project/pulls/1'
+  do
+    ! fm_pr_url_parse "$row" || fail "parser accepted a URL that must not resolve as forgejo: $row"
+  done
   fm_pr_url_parse https://github.com/a/b/pull/1 || fail "parser rejected canonical URL"
   [ "$FM_PR_PROVIDER" = github ] || fail "parser did not tag a pull request URL as github"
   [ "$FM_PR_HOST" = github.com ] || fail "parser returned wrong GitHub host"
@@ -722,32 +649,6 @@ test_invalid_entrypoints_have_zero_side_effects() {
   [ ! -s "$dir/guard.log" ] || fail "invalid direct or merge data called the guard"
   [ ! -e "$TMP_ROOT/escape.check.sh" ] || fail "task traversal wrote outside state"
   pass "PR and teardown entrypoints reject invalid arguments before every side effect"
-}
-
-test_relaunch_control_tx_meta_order() {
-  local dir
-  dir=$(make_case relaunch-control-tx-order)
-  write_task_meta "$dir"
-  FM_TEST_GH_HEAD=0123456789abcdef0123456789abcdef01234567 \
-    run_check_entry "$dir" task-a https://github.com/o/r/pull/1 \
-    >/dev/null 2>/dev/null || fail "arming the poll failed"
-  fm_pr_poll_artifacts_valid "$dir/home/state" task-a "$POLL" \
-    || fail "freshly armed poll did not authenticate"
-
-  # A control-plane relaunch preserves pr=/pr_head= (bin/fm-spawn.sh's
-  # preserve_relaunch_meta) and then appends control_relaunch_tx= after them;
-  # that exact post-relaunch order must still authenticate the armed watch.
-  printf 'control_relaunch_tx=deadbeef\n' >> "$dir/home/state/task-a.meta"
-  fm_pr_poll_artifacts_valid "$dir/home/state" task-a "$POLL" \
-    || fail "relaunch-ordered control_relaunch_tx after pr=/pr_head= disabled the armed watch"
-
-  # The allowlist stays narrow: an unrecognized trailing key after pr=/pr_head=
-  # must still be rejected, exactly as an extra key before pr= is rejected.
-  printf 'evil_unrecognized_key=1\n' >> "$dir/home/state/task-a.meta"
-  ! fm_pr_poll_artifacts_valid "$dir/home/state" task-a "$POLL" \
-    || fail "an unrecognized trailing key after pr=/pr_head= was accepted"
-
-  pass "a relaunch-ordered control_relaunch_tx= authenticates while unknown trailing keys stay rejected"
 }
 
 # A draft cannot be merged, so arming a merge poll on one would wait for an event
@@ -856,6 +757,32 @@ test_direct_pr_unpushed_commit_refuses_registration() {
     || fail "direct-PR refusal did not name the unpushed commit: $(cat "$dir/stderr")"
   [ ! -e "$dir/home/state/task-a.check.sh" ] || fail "direct-PR unpushed commit still armed a poll"
   pass "fm-pr-check refuses a direct-PR registration while a later commit is only in the copy"
+}
+
+test_relaunch_control_tx_meta_order() {
+  local dir
+  dir=$(make_case relaunch-control-tx-order)
+  write_task_meta "$dir"
+  FM_TEST_GH_HEAD=0123456789abcdef0123456789abcdef01234567 \
+    run_check_entry "$dir" task-a https://github.com/o/r/pull/1 \
+    >/dev/null 2>/dev/null || fail "arming the poll failed"
+  fm_pr_poll_artifacts_valid "$dir/home/state" task-a "$POLL" \
+    || fail "freshly armed poll did not authenticate"
+
+  # A control-plane relaunch preserves pr=/pr_head= (bin/fm-spawn.sh's
+  # preserve_relaunch_meta) and then appends control_relaunch_tx= after them;
+  # that exact post-relaunch order must still authenticate the armed watch.
+  printf 'control_relaunch_tx=deadbeef\n' >> "$dir/home/state/task-a.meta"
+  fm_pr_poll_artifacts_valid "$dir/home/state" task-a "$POLL" \
+    || fail "relaunch-ordered control_relaunch_tx after pr=/pr_head= disabled the armed watch"
+
+  # The allowlist stays narrow: an unrecognized trailing key after pr=/pr_head=
+  # must still be rejected, exactly as an extra key before pr= is rejected.
+  printf 'evil_unrecognized_key=1\n' >> "$dir/home/state/task-a.meta"
+  ! fm_pr_poll_artifacts_valid "$dir/home/state" task-a "$POLL" \
+    || fail "an unrecognized trailing key after pr=/pr_head= was accepted"
+
+  pass "a relaunch-ordered control_relaunch_tx= authenticates while unknown trailing keys stay rejected"
 }
 
 test_valid_recording_and_merge_derivation() {
@@ -1067,7 +994,6 @@ make_poll_fixture() {
 run_poll() {
   local dir=$1
   FM_TEST_GH_LOG="$dir/gh.log" FM_TEST_GLAB_LOG="$dir/glab.log" \
-    FM_TEST_TEA_LOG="$dir/tea.log" \
     FM_TEST_GERRIT_AXI_LOG="$dir/gerrit-axi.log" \
     PATH="$dir/fakebin:$BASE_PATH" \
     bash "$dir/home/state/task-a.check.sh"
@@ -2095,6 +2021,145 @@ test_gerrit_nm_ready_gate_requires_recovered_custody() {
 # merge request into a merge. Its evidence against the public fixture project
 # https://gitlab.com/KarotKris/gitlab-merge-watch-fixture is in
 # docs/gitlab-merge-watch.md; this exercises the same paths hermetically.
+# A Forgejo pull request is followed by number through "tea api" on the one
+# login registered for its host. Only a boolean merged field of true wakes the
+# poll: tea api exits 0 on an HTTP error with the error body as output, so an
+# error body, an unmerged record, a tea failure, and an ambiguous login all
+# stay silent, and the read never depends on how many newer pull requests the
+# repository has.
+test_forgejo_merge_watch() {
+  local dir state out url value
+  dir=$(make_case forgejo-merge-watch)
+  state="$dir/home/state"
+  url=https://forgejo.example/o/r/pulls/7
+  cat > "$dir/fakebin/tea" <<'SH'
+#!/usr/bin/env bash
+printf '%s\n' "$*" >> "$FM_TEST_TEA_LOG"
+if [ "${1:-} ${2:-}" = "login list" ]; then
+  printf '[\n'
+  printf '  {\n    "name": "main",\n    "url": "https://forgejo.example"\n  }'
+  if [ -n "${FM_TEST_TEA_SECOND_LOGIN:-}" ]; then
+    printf ',\n  {\n    "name": "other",\n    "url": "https://forgejo.example"\n  }'
+  fi
+  printf '\n]\n'
+  exit 0
+fi
+[ "${1:-}" = api ] || exit 0
+[ -z "${FM_TEST_TEA_FAIL:-}" ] || exit 1
+case "${FM_TEST_TEA_PULL:-open}" in
+  merged) printf '{"state":"closed","merged":true,"head":{"sha":"abc"}}\n' ;;
+  error) printf '{"message":"The target couldn'"'"'t be found.","url":"x"}\n' ;;
+  *) printf '{"state":"open","merged":false,"head":{"sha":"abc"}}\n' ;;
+esac
+SH
+  chmod +x "$dir/fakebin/tea"
+  ln -sf "$(command -v jq)" "$dir/fakebin/jq"
+  : > "$dir/tea.log"
+
+  write_poll_meta "$state" task-a "$url"
+  fm_pr_poll_prepare "$state" task-a forgejo "$url" forgejo.example o/r 7 "$POLL" \
+    || fail "could not prepare a Forgejo poll"
+  fm_pr_poll_publish_prepared || fail "could not publish a Forgejo poll"
+
+  for value in open error; do
+    out=$(FM_TEST_TEA_LOG="$dir/tea.log" FM_TEST_TEA_PULL=$value run_poll "$dir")
+    [ -z "$out" ] || fail "Forgejo poll emitted for a $value reading"
+  done
+  out=$(FM_TEST_TEA_LOG="$dir/tea.log" FM_TEST_TEA_PULL=merged FM_TEST_TEA_FAIL=1 run_poll "$dir")
+  [ -z "$out" ] || fail "Forgejo poll emitted after a tea failure"
+  out=$(FM_TEST_TEA_LOG="$dir/tea.log" FM_TEST_TEA_PULL=merged FM_TEST_TEA_SECOND_LOGIN=1 run_poll "$dir")
+  [ -z "$out" ] || fail "Forgejo poll emitted with an ambiguous tea login"
+  out=$(FM_TEST_TEA_LOG="$dir/tea.log" FM_TEST_TEA_PULL=merged run_poll "$dir")
+  [ "$out" = merged ] || fail "Forgejo poll did not emit exactly one merged line"
+
+  grep -qF -- "api --login main --repo o/r /repos/{owner}/{repo}/pulls/7" "$dir/tea.log" \
+    || fail "the poll did not read the one pull request by number on the host's login"
+  ! grep -qF -- "pulls list" "$dir/tea.log" \
+    || fail "the poll scanned a pull request list instead of reading by number"
+  pass "Forgejo poll reads one pull request by number through tea api and wakes only on merged true"
+}
+
+# The one tea login for a Forgejo host is found by parsing
+# `tea login list --output json` as JSON, never by splitting each line on
+# quotes. The pretty-printed fixture below is byte-for-byte what tea 0.14.0
+# prints for two logins; the two compact fixtures are the same records with one
+# object per line and as one line, the shapes a line-oriented split misread as
+# a url equal to the login name, refusing every host. Both the sourced helper
+# and the static watcher body, which keeps its own copy of the filter, must
+# resolve every shape, strip scheme, port, and path from the url, and refuse
+# an ambiguous host.
+test_forgejo_login_list_shapes() {
+  local dir state out shape url
+  dir=$(make_case forgejo-login-shapes)
+  state="$dir/home/state"
+  cat > "$dir/tea-multiline.json" <<'JSON'
+[
+  {
+    "name": "fixture-one",
+    "url": "https://git.example.com",
+    "ssh_host": "git.example.com",
+    "user": "someone",
+    "default": "true"
+  },
+  {
+    "name": "fixture-two",
+    "url": "http://code.internal:3000/",
+    "ssh_host": "code.internal",
+    "user": "other",
+    "default": "false"
+  }
+]
+JSON
+  jq -c . "$dir/tea-multiline.json" > "$dir/tea-oneline.json"
+  { printf '[\n'; jq -c '.[]' "$dir/tea-multiline.json" | sed '1!s/^/,/'; printf ']\n'; } \
+    > "$dir/tea-perobject.json"
+  [ "$(wc -l < "$dir/tea-oneline.json")" -eq 1 ] || fail "the one-line fixture is not one line"
+  grep -q '^{"name":"fixture-one","url":"https://git.example.com"' "$dir/tea-perobject.json" \
+    || fail "the per-object fixture does not put a whole login on one line"
+  printf '[{"name":"a","url":"https://git.example.com"},{"name":"b","url":"https://git.example.com:3000/x"}]\n' \
+    > "$dir/tea-ambiguous.json"
+  cat > "$dir/fakebin/tea" <<'SH'
+#!/usr/bin/env bash
+if [ "${1:-} ${2:-}" = "login list" ]; then
+  cat "$FM_TEST_TEA_LOGINS"
+  exit 0
+fi
+[ "${1:-}" = api ] || exit 0
+printf '%s\n' "$*" >> "$FM_TEST_TEA_LOG"
+printf '{"state":"closed","merged":true,"head":{"sha":"abc"}}\n'
+SH
+  chmod +x "$dir/fakebin/tea"
+  ln -sf "$(command -v jq)" "$dir/fakebin/jq"
+  : > "$dir/tea.log"
+
+  url=https://code.internal/o/r/pulls/7
+  write_poll_meta "$state" task-a "$url"
+  fm_pr_poll_prepare "$state" task-a forgejo "$url" code.internal o/r 7 "$POLL" \
+    || fail "could not prepare a Forgejo poll"
+  fm_pr_poll_publish_prepared || fail "could not publish a Forgejo poll"
+
+  for shape in multiline oneline perobject; do
+    out=$(FM_TEST_TEA_LOGINS="$dir/tea-$shape.json" PATH="$dir/fakebin:$PATH" fm_pr_forgejo_login git.example.com) \
+      || fail "$shape: the login helper refused a host with exactly one login"
+    [ "$out" = fixture-one ] || fail "$shape: the login helper resolved '$out' for git.example.com"
+    out=$(FM_TEST_TEA_LOGINS="$dir/tea-$shape.json" PATH="$dir/fakebin:$PATH" fm_pr_forgejo_login code.internal) \
+      || fail "$shape: the login helper refused a url with a port and trailing slash"
+    [ "$out" = fixture-two ] || fail "$shape: the login helper resolved '$out' for code.internal"
+    ! FM_TEST_TEA_LOGINS="$dir/tea-$shape.json" PATH="$dir/fakebin:$PATH" fm_pr_forgejo_login elsewhere.example >/dev/null \
+      || fail "$shape: the login helper resolved a host with no registered login"
+    out=$(FM_TEST_TEA_LOGINS="$dir/tea-$shape.json" FM_TEST_TEA_LOG="$dir/tea.log" run_poll "$dir")
+    [ "$out" = merged ] || fail "$shape: the static poll did not resolve the login and report the merge"
+    grep -qF -- "api --login fixture-two --repo o/r" "$dir/tea.log" \
+      || fail "$shape: the static poll did not read through the host's login"
+    : > "$dir/tea.log"
+  done
+  ! FM_TEST_TEA_LOGINS="$dir/tea-ambiguous.json" PATH="$dir/fakebin:$PATH" fm_pr_forgejo_login git.example.com >/dev/null \
+    || fail "the login helper picked one of two logins for the same host"
+  out=$(FM_TEST_TEA_LOGINS="$dir/tea-ambiguous.json" FM_TEST_TEA_LOG="$dir/tea.log" run_poll "$dir")
+  [ -z "$out" ] || fail "the static poll read through an ambiguous login"
+  pass "Forgejo login match parses tea's JSON in every line shape, in the helper and the static poll"
+}
+
 test_gitlab_merge_watch() {
   local dir state out rc url value noglab entry bindir name
   dir=$(make_case gitlab-merge-watch)
@@ -2205,146 +2270,6 @@ EOF
     || fail "merge wrapper merged despite an unreadable merge request state"
 
   pass "GitLab merge requests are followed on any instance and never wake falsely"
-}
-
-test_gitea_merge_watch() {
-  local dir state out rc url notea nojq bindir entry name
-  dir=$(make_case gitea-merge-watch)
-  state="$dir/home/state"
-  url=http://alps:3222/babbarc/dotfiles/pulls/7
-  printf '%s\n' 'http://alps:3222' > "$dir/home/config/gitea-instances"
-
-  write_poll_meta "$state" task-a "$url"
-  fm_pr_poll_prepare "$state" task-a gitea "$url" http://alps:3222 babbarc/dotfiles 7 "$POLL" \
-    || fail "could not prepare a Gitea poll"
-  fm_pr_poll_publish_prepared || fail "could not publish a Gitea poll"
-  fm_pr_poll_artifacts_valid "$state" task-a "$POLL" \
-    || fail "published Gitea poll provenance or metadata binding was invalid"
-  [ "$(cat "$state/task-a.pr-poll")" = "gitea
-$url
-http://alps:3222
-babbarc/dotfiles
-7" ] || fail "published Gitea sidecar bytes were not exact"
-  cmp -s "$POLL" "$state/task-a.check.sh" || fail "published Gitea check was not byte-for-byte static"
-
-  # Only a top-level merged:true wakes firstmate; every other reading stays
-  # silent, including an unreadable pull request and non-JSON output.
-  out=$(FM_TEST_TEA_MERGED=false run_poll "$dir")
-  [ -z "$out" ] || fail "Gitea poll emitted for an open pull request"
-  out=$(FM_TEST_TEA_API_FAIL=1 FM_TEST_TEA_MERGED=true run_poll "$dir")
-  [ -z "$out" ] || fail "Gitea poll emitted after a tea failure"
-  out=$(FM_TEST_TEA_API_GARBAGE=1 FM_TEST_TEA_MERGED=true run_poll "$dir")
-  [ -z "$out" ] || fail "Gitea poll emitted for non-JSON tea output"
-  out=$(FM_TEST_TEA_MERGED=true run_poll "$dir")
-  [ "$out" = merged ] || fail "Gitea poll did not emit exactly one merged line for a merged pull request"
-
-  # A nested "merged": true anywhere else in a compatible response must not be
-  # read as a merge: only the TOP-LEVEL pull request merged boolean wakes.
-  out=$(FM_TEST_TEA_API_NESTED_TRUE=1 run_poll "$dir")
-  [ -z "$out" ] || fail "Gitea poll emitted for a nested merged:true while the top-level field was false"
-
-  # tea is addressed by the port-qualified derived login and the owner/repo
-  # slug, and the poll re-derives that login from the base URL, not any config.
-  grep -qF -- 'api --login firstmate-alps-3222 repos/babbarc/dotfiles/pulls/7' "$dir/tea.log" \
-    || fail "Gitea poll did not address tea by the port-qualified derived login and repo slug"
-
-  # Two allow-listed instances on the same host but different ports resolve to
-  # distinct tea logins.
-  [ "$(fm_pr_gitea_derive_login http://alps:3222)" = firstmate-alps-3222 ] \
-    || fail "derived Gitea login dropped the explicit port"
-  [ "$(fm_pr_gitea_derive_login http://alps:4000)" != "$(fm_pr_gitea_derive_login http://alps:3222)" ] \
-    || fail "two Gitea instances on one host collided on one derived login"
-  [ "$(fm_pr_gitea_derive_login https://gitea.example.com)" = firstmate-gitea-example-com-443 ] \
-    || fail "derived Gitea login did not default the port from the https scheme"
-
-  # A doctored sidecar cannot redirect the poll: the stored parts must rebuild
-  # the stored URL exactly.
-  printf '%s\n%s\n%s\n%s\n%s\n' gitea "$url" http://evil.example:3222 babbarc/dotfiles 7 \
-    > "$state/task-a.pr-poll"
-  out=$(FM_TEST_TEA_MERGED=true run_poll "$dir")
-  [ -z "$out" ] || fail "Gitea poll emitted for a sidecar whose base URL was swapped"
-  printf '%s\n%s\n%s\n%s\n%s\n' gitea "$url" http://alps:3222 babbarc/other 7 \
-    > "$state/task-a.pr-poll"
-  out=$(FM_TEST_TEA_MERGED=true run_poll "$dir")
-  [ -z "$out" ] || fail "Gitea poll emitted for a sidecar whose repo was swapped"
-
-  # Arming refuses when the instance is not allow-listed, when tea is absent,
-  # and when the derived login is not configured - the three ways the poll
-  # could otherwise be armed to watch nothing.
-  write_task_meta "$dir" task-b
-  set +e
-  out=$(run_check_entry "$dir" task-b "$url" 2>&1); rc=$?
-  set -e
-  [ "$rc" -eq 0 ] || fail "arming a Gitea watch failed with an allow-listed instance and configured login"
-  [ -e "$state/task-b.check.sh" ] || fail "armed Gitea watch left no poll"
-
-  write_task_meta "$dir" task-c
-  printf '%s\n' '# nothing allow-listed' > "$dir/home/config/gitea-instances"
-  set +e
-  out=$(run_check_entry "$dir" task-c "$url" 2>&1); rc=$?
-  set -e
-  [ "$rc" -ne 0 ] || fail "arming a Gitea watch succeeded for a non-allow-listed instance"
-  case "$out" in *"not an allow-listed Gitea instance"*) ;; *) fail "non-allow-listed Gitea arming did not report the allow-list" ;; esac
-  [ ! -e "$state/task-c.check.sh" ] || fail "refused Gitea arming left a poll armed"
-  printf '%s\n' 'http://alps:3222' > "$dir/home/config/gitea-instances"
-
-  write_task_meta "$dir" task-d
-  set +e
-  out=$(FM_TEST_TEA_LOGINS=some-other-login run_check_entry "$dir" task-d "$url" 2>&1); rc=$?
-  set -e
-  [ "$rc" -ne 0 ] || fail "arming a Gitea watch succeeded with the derived login unconfigured"
-  case "$out" in *"needs a tea login named 'firstmate-alps-3222'"*) ;; *) fail "unconfigured-login Gitea arming did not name the login" ;; esac
-  [ ! -e "$state/task-d.check.sh" ] || fail "login-refused Gitea arming left a poll armed"
-
-  notea="$dir/notea"
-  mkdir -p "$notea"
-  while IFS= read -r bindir; do
-    [ -d "$bindir" ] || continue
-    for entry in "$bindir"/*; do
-      [ -e "$entry" ] || continue
-      name=$(basename "$entry")
-      [ "$name" = tea ] && continue
-      [ -e "$notea/$name" ] || ln -s "$entry" "$notea/$name" 2>/dev/null
-    done
-  done <<EOF
-$dir/fakebin
-$(printf '%s\n' "$BASE_PATH" | tr ':' '\n')
-EOF
-  write_task_meta "$dir" task-e
-  set +e
-  out=$(FM_ROOT_OVERRIDE="$dir/root" FM_HOME="$dir/home" FM_TEST_GUARD_LOG="$dir/guard.log" \
-    PATH="$notea" "$PR_CHECK" task-e "$url" 2>&1); rc=$?
-  set -e
-  [ "$rc" -ne 0 ] || fail "arming a Gitea watch succeeded with tea absent"
-  case "$out" in *"requires tea on PATH"*) ;; *) fail "tea-absent Gitea arming did not report the missing CLI" ;; esac
-  [ ! -e "$state/task-e.check.sh" ] || fail "tea-absent Gitea arming left a poll armed"
-
-  # jq is a Gitea watch requirement too, because the poll reads the merged
-  # state out of tea's JSON; a missing jq is reported at arm time.
-  nojq="$dir/nojq"
-  mkdir -p "$nojq"
-  while IFS= read -r bindir; do
-    [ -d "$bindir" ] || continue
-    for entry in "$bindir"/*; do
-      [ -e "$entry" ] || continue
-      name=$(basename "$entry")
-      [ "$name" = jq ] && continue
-      [ -e "$nojq/$name" ] || ln -s "$entry" "$nojq/$name" 2>/dev/null
-    done
-  done <<EOF
-$dir/fakebin
-$(printf '%s\n' "$BASE_PATH" | tr ':' '\n')
-EOF
-  write_task_meta "$dir" task-f
-  set +e
-  out=$(FM_ROOT_OVERRIDE="$dir/root" FM_HOME="$dir/home" FM_TEST_GUARD_LOG="$dir/guard.log" \
-    FM_TEST_TEA_LOG="$dir/tea.log" PATH="$nojq" "$PR_CHECK" task-f "$url" 2>&1); rc=$?
-  set -e
-  [ "$rc" -ne 0 ] || fail "arming a Gitea watch succeeded with jq absent"
-  case "$out" in *"requires jq on PATH"*) ;; *) fail "jq-absent Gitea arming did not report the missing tool: $out" ;; esac
-  [ ! -e "$state/task-f.check.sh" ] || fail "jq-absent Gitea arming left a poll armed"
-
-  pass "Gitea pull requests are watched only when allow-listed and never wake falsely"
 }
 
 seed_canonical_poll() {
@@ -3705,7 +3630,8 @@ SH
 
 test_parser_matrix
 test_gitlab_merge_watch
-test_gitea_merge_watch
+test_forgejo_merge_watch
+test_forgejo_login_list_shapes
 test_gerrit_merge_watch
 test_gerrit_arming_records_no_patch_set_revision
 test_gerrit_ready_gate_reads_the_published_tree
@@ -3729,11 +3655,11 @@ test_retirement_refuses_replacement_and_nonterminal_results
 test_retirement_queue_failure_and_receipt_tampering
 test_gitlab_merged_poll_retires
 test_invalid_entrypoints_have_zero_side_effects
-test_relaunch_control_tx_meta_order
 test_draft_pull_request_is_not_armed
 test_secondmate_record_refuses_a_pr_watch
 test_unpushed_named_head_refuses_registration
 test_direct_pr_unpushed_commit_refuses_registration
+test_relaunch_control_tx_meta_order
 test_valid_recording_and_merge_derivation
 test_rejected_metacharacter_bytes_are_inert
 test_static_poll_contract
