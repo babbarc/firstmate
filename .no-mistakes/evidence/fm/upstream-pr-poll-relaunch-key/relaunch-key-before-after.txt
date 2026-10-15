@@ -1,0 +1,6 @@
+== AFTER FIX (HEAD f368431) ==
+ok - a relaunch-ordered control_relaunch_tx= authenticates while unknown trailing keys stay rejected
+exit=0
+== BEFORE FIX (bin/fm-pr-lib.sh @ 9b1ada0, same test) ==
+not ok - relaunch-ordered control_relaunch_tx after pr=/pr_head= disabled the armed watch
+exit=1
