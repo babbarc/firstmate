@@ -2,6 +2,7 @@
 name: diagnostic-reasoning
 description: >-
   Load before scoping a reported bug and before acting on a diagnostic report.
+  Also load before asserting a capability or fix works: verify the behavioral effect end to end, or label it an unverified hypothesis, rather than inferring it from an API or tool surface alone.
 user-invocable: false
 metadata:
   internal: true
