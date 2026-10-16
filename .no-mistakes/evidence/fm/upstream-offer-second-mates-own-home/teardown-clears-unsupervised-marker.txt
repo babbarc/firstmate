@@ -1,0 +1,16 @@
+Real lab lifecycle: bin/fm-home-seed.sh sm4 + bin/fm-spawn.sh sm4 ... claude --secondmate (real claude, lab tmux socket), HEAD 4fce533
+--- tick with sm4 holding its own lock:
+tick rc=0
+sm4 own lock: 2972214
+--- simulate the lost-lock state: sm4/state/.lock -> dead pid 99999999
+WAKE: check: secondmate sm4 alive but unsupervised: its own session lock names pid 99999999, which is not a live harness; recover with bin/fm-control.sh sm4 relaunch
+tick rc=0
+marker before teardown: .secondmate-unsupervised-sm4
+--- bin/fm-teardown.sh sm4 --force:
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+teardown sm4 complete (window sm3:fm-sm4, worktree /tmp/fm-lab.GfEseN/sm4)
+teardown rc=0
+marker after teardown: <absent>
+sm4.meta after: ls: cannot access '/tmp/fm-lab.GfEseN/main/state/sm4.meta': No such file or directory
+other mate's marker untouched: .secondmate-unsupervised-sm1

@@ -1,6 +1,7 @@
-root=/tmp/fm-lab.7vulrc/sm-head marker=yes
-  after sourcing: FM_HOME=/tmp/fm-lab.7vulrc/sm-head FM_ROOT_OVERRIDE=/tmp/fm-lab.7vulrc/sm-head FM_ROOT=<unset>
-  exported FM_ROOT count in child: 0
-root=/tmp/fm-lab.7vulrc/unmarked marker=no
-  after sourcing: FM_HOME=/tmp/fm-lab.7vulrc/main FM_ROOT_OVERRIDE=/tmp/fm-lab.7vulrc/main FM_ROOT=<unset>
-  exported FM_ROOT count in child: 0
+HEAD 4fce533: source <root>/bin/fm-wake-lib.sh under a leaked launcher FM_HOME=FM_ROOT_OVERRIDE=/tmp/fm-lab.GfEseN/main, then spawn a child
+root=/tmp/fm-lab.GfEseN/sm-head marker=yes
+  after sourcing: FM_HOME=/tmp/fm-lab.GfEseN/sm-head FM_ROOT_OVERRIDE=/tmp/fm-lab.GfEseN/sm-head FM_ROOT=/tmp/fm-lab.GfEseN/sm-head STATE=/tmp/fm-lab.GfEseN/sm-head/state
+  child sees exported FM_ROOT: 0
+root=/tmp/fm-lab.GfEseN/unmarked marker=no
+  after sourcing: FM_HOME=/tmp/fm-lab.GfEseN/main FM_ROOT_OVERRIDE=/tmp/fm-lab.GfEseN/main FM_ROOT=/tmp/fm-lab.GfEseN/main STATE=/tmp/fm-lab.GfEseN/main/state
+  child sees exported FM_ROOT: 0

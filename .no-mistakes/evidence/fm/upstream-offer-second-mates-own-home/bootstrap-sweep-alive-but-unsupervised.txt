@@ -1,5 +1,5 @@
-bin/fm-bootstrap.sh (HEAD) run as the lab primary's session-start sweep, FM_HOME=/tmp/fm-lab.7vulrc/main, backend tmux:
-sm1: base-built mate, alive, own lock absent; sm2: HEAD mate, supervised; sm3: claude ~1.5min old in a 30s+ older pane shell, own lock names dead pid 99999999 (inside default 120s startup window)
+HEAD 4fce533 bin/fm-bootstrap.sh run as the lab primary's session-start sweep, FM_HOME=/tmp/fm-lab.GfEseN/main, tmux backend on the lab socket
+sm1: base-built mate, alive claude, own lock absent; sm2: HEAD mate, supervised; sm3: claude ~1min old in an older pane shell, own lock names dead pid 99999999 (inside default 120s startup window)
 --- output:
 SECONDMATE_LIVENESS: secondmate sm1: alive but unsupervised: its own session lock is absent or malformed; recover with bin/fm-control.sh sm1 relaunch
 SECONDMATE_SYNC: secondmate sm1: skipped: primary default-branch commit cannot be resolved
