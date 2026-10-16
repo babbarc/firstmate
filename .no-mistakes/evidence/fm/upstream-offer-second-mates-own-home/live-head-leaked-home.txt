@@ -1,0 +1,7 @@
+== HEAD c7f4f3d: claude launched in secondmate home /tmp/fm-lab.RqtKjI/sm-head with leaked FM_HOME=/tmp/fm-lab.RqtKjI (launcher)
+sm-head/state/.lock: 3988053
+    PID ELAPSED 
+3988053     173 claude
+sm-head/state/.session-start-complete: 3988053
+launcher /tmp/fm-lab.RqtKjI/state contents:
+(end launcher state)

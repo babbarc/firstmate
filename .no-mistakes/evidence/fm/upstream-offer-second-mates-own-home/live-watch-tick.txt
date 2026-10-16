@@ -1,0 +1,12 @@
+Primary lab home /tmp/fm-lab.RqtKjI/primary; metas: bosunbase -> /tmp/fm-lab.RqtKjI/sm-base (BASE code, launched with leaked FM_HOME, never took own lock), bosunhead -> /tmp/fm-lab.RqtKjI/sm-head (HEAD code, relaunched after its prior pid died)
+sm-base: agent pid 4070401 age 156s; own state/.lock='' completion=''
+sm-head: agent pid 4085616 age 48s; own state/.lock='4085616' completion='4085616'
+== watch tick 1 (19:17:09)
+WAKE: check: secondmate bosunbase alive but unsupervised: its own session lock is absent or malformed; recover with bin/fm-control.sh bosunbase relaunch
+tick rc=0
+== watch tick 2 (19:17:09)
+tick rc=0
+== primary state/.wake-queue:
+1792174629	1	check	secondmate-unsupervised-bosunbase	check: secondmate bosunbase alive but unsupervised: its own session lock is absent or malformed; recover with bin/fm-control.sh bosunbase relaunch
+== unsupervised markers:
+.secondmate-unsupervised-bosunbase

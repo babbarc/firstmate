@@ -1,0 +1,112 @@
+FM_TEST_BEGIN 2026-10-16T18:11:28Z tests/fm-secondmate-sync.test.sh family=secondmate expected_gate_skip=none
+FM_TEST_BEGIN 2026-10-16T18:11:28Z tests/fm-secondmate-liveness.test.sh family=secondmate expected_gate_skip=none
+ok - T1 updated: a behind home fast-forwards to the primary's local HEAD
+ok - T2 current: an already-current home is a no-op and reports no instruction change
+ok - T3 dirty: an uncommitted home is skipped, its edit preserved
+ok - scratchpad2/ does not mark a secondmate home dirty for the sync guard
+ok - T4 diverged: a home that is not an ancestor of the primary's HEAD is skipped
+ok - T5 in-flight: a home on a feature branch is skipped, its work preserved
+ok - T6 no fetch: the local-HEAD sync never invokes git fetch
+ok - T7 sweep nudges on a real instruction change only, but still fast-forwards
+ok - T8 bootstrap sweeps live homes and sends exactly one marked nudge for the instruction change
+ok - T8a bootstrap nudge send respects FM_STATE_OVERRIDE
+ok - T8f bootstrap nudge retry rejects malformed marker ids
+ok - T8c failed bootstrap nudge is surfaced and recorded for retry
+ok - T8d bootstrap nudge retry is idempotent after success
+ok - T8e bootstrap nudge retry refuses a changed home instead of guessing
+ok - T8b a stale herdr endpoint cannot lose a durably enqueued nudge, and fm-<id> resolves through post-respawn metadata
+ok - T9 bootstrap surfaces a skipped dirty live secondmate home
+ok - T10 spawn fast-forwards a secondmate worktree to the primary's local HEAD before launch
+ok - T11 spawn warns when pre-launch sync is skipped
+ok - T12 gitignored marker: a freshly seeded home reads clean to fleet-sync and the ff sweep
+ok - T13 gitignored marker: an existing marker-only-dirty home converges, then reads clean
+ok - T14 marker tolerance does not mask a genuinely dirty home
+ok - R1 a remote home ahead of the host's Firstmate copy still advances to the primary's commit
+ok - R1b a remote sync names exactly which instruction paths its advance changed
+ok - R2 a missing target is imported from the host's Firstmate copy without moving it
+ok - R3 a target neither side holds is imported from the home's own origin
+ok - R4 an already-present target advances the home with no fetch available
+ok - R5 a target neither the host copy nor the origin holds skips with an actionable reason
+ok - R6 dirty, diverged, and feature-branch remote homes skip and are left untouched
+ok - R7 a sync with no target still follows the host's own refreshed Firstmate copy
+ok - R8 session start converges a remote home on the primary's default-branch commit
+ok - R10 a host too old for a parent-targeted sync is reported with the command that fixes it
+ok - R9 a remote launch leaves the home on the parent's commit while an ordinary spawn follows its own checkout
+# all fm-secondmate-sync tests passed
+FM_TEST_END 2026-10-16T18:11:57Z tests/fm-secondmate-sync.test.sh exit=0 duration_ms=29537 gate_skip=false
+ok - fm_backend_tmux_agent_state: separates live, dead, missing, ambiguous, and unreadable
+ok - fm_backend_tmux_agent_state: rejects malformed targets before probing tmux
+ok - fm_backend_herdr_agent_state: preserves missing/no-agent/live/unknown husk behavior
+ok - fm_backend_agent_state: routes tmux/Herdr and keeps Zellij unverified
+ok - sweep: a confirmed-dead secondmate endpoint is killed and respawned
+ok - sweep: distinct secondmate relaunches serialize across the task-set lock
+ok - sweep: an already-live secondmate is untouched and distinguishable in verbose diagnostics
+ok - sweep: an authoritatively missing Pi secondmate window is relaunched
+ok - sweep: an authoritatively missing pi-signed secondmate window is relaunched
+ok - sweep: an existing ambiguous Pi process prevents duplicate recovery
+ok - sweep: transient target unreadability never licenses recovery
+ok - sweep: failed relaunch diagnostics distinguish a confidently missing endpoint
+ok - sweep: an unverified harness blocks recovery with a concrete diagnostic
+ok - sweep: idempotent by construction - a live secondmate is never re-touched on a later run
+ok - sweep: an alive endpoint whose own session lock is stale is reported, not silently accepted
+ok - watch tick: a dead lock is left alone inside the startup window and reported exactly once after it
+ok - watch tick: a dead lock under a just-relaunched agent in an old pane is left alone
+ok - watch tick: a stale beacon explained by a live auto-arm rewake is not reported; an unexplained one is
+ok - watch tick: a persistent-model mate with a fresh beacon and no live watcher is not reported
+ok - sweep: a live lock without matching startup completion is reported as unsupervised
+ok - sweep: a live lock younger than the session-start bound without completion is left to finish
+ok - sweep: a live lock whose watcher beacon is stale while supervision is required is reported
+ok - sweep: skipped entirely under FM_BOOTSTRAP_DETECT_ONLY=1, exactly like the other mutating sweeps
+ok - sweep: a silent no-op with no kind=secondmate meta present (a secondmate home's own natural scoping)
+ok - sweep: a mate mid-episode under the shared liveness lock is skipped entirely
+ok - relaunch: the spawn timeout bounds the lock wait before touching the endpoint
+ok - sweep: an unreadable or unwritable relaunch ledger refuses to kill or spawn
+ok - poll probe: remote states map to the same contract as local, one call each
+ok - poll probe: unreachable or inconclusive remote reads preserve the route
+# all fm-secondmate-liveness tests passed
+FM_TEST_END 2026-10-16T18:11:59Z tests/fm-secondmate-liveness.test.sh exit=0 duration_ms=31161 gate_skip=false
+FM_TEST_BEGIN 2026-10-16T18:11:59Z tests/fm-sessionstart-nudge.test.sh family=session-bootstrap expected_gate_skip=none
+ok - fm-sessionstart-nudge: a genuine primary gets one explicitly marked instruction line
+ok - fm-sessionstart-nudge: NO_MISTAKES_GATE is silent
+ok - fm-sessionstart-nudge: .no-mistakes gate common-dir is silent
+ok - fm-sessionstart-nudge: an unmarked linked task worktree is silent
+ok - fm-sessionstart-nudge: a marked linked secondmate home is a primary
+ok - fm-sessionstart-nudge: a checkout without state is silent
+ok - fm-sessionstart-nudge: a lock holder in process ancestry is already run
+ok - fm-sessionstart-nudge: a lock holder that is pid 1 of its own namespace is already run
+ok - OpenCode session.created delivers the exact wrapper nudge once per session
+ok - run wrapper: startup runs the full digest and never also nudges
+ok - run wrapper: clear and compact re-emit the digest without repeating startup sweeps
+ok - run wrapper forwards only stale-cache rebuild sources to immutable-baseline instruction refresh
+ok - run wrapper refreshes a compact even when startup completion is unproven
+ok - run wrapper: clear falls back to full startup when completion is unproven
+ok - run wrapper: clear accepts completion only from the current harness
+ok - run wrapper: a resume with no owned lock takes the helm instead of nudging
+ok - run wrapper: a resume that still owns the lock stays silent instead of re-running the digest
+ok - run wrapper: an owned resume hook payload stays silent while a startup would take the helm
+ok - run wrapper: the hook payload's source field drives routing with no explicit argument
+ok - run wrapper: an unrecognized or absent source takes the helm rather than skipping it
+ok - run wrapper: ordinary ineligible opens stay silent-zero and Pi preflight gets an explicit silent stand-down
+ok - run wrapper and home lib: a seeded secondmate home wins over a leaked launcher FM_HOME while an unmarked root is untouched
+ok - secondmate scripts derive every state path from their own home under a leaked launcher FM_HOME
+ok - run wrapper: a fresh primary checkout gets its missing state dir created, a linked worktree still does not
+ok - run wrapper: a fresh primary that cannot create its state dir says so on stderr, then stands down
+ok - run wrapper: a session start that cannot take the lock still opens the session and says so
+ok - Pi distinguishes header-proven restored CLI sessions from named create-if-missing startups
+ok - Pi provider preflight owns one generation-bound startup prerequisite with deterministic fallback, replacement, cancellation, timeout, and truncation
+ok - Pi reload shutdown releases its exit listener and stale startup generation
+ok - Pi retains a bounded digest prefix and loudly marks oversized preflight delivery
+FM_TEST_END 2026-10-16T18:13:00Z tests/fm-sessionstart-nudge.test.sh exit=0 duration_ms=61177 gate_skip=false
+FM_TEST_BEGIN 2026-10-16T18:13:00Z tests/fm-pi-home-leak.test.sh family=unclassified expected_gate_skip=none
+ok - Pi restored second mate resolves its own home despite a leaked launcher FM_HOME/FM_ROOT_OVERRIDE
+# all fm-pi-home-leak tests passed
+FM_TEST_END 2026-10-16T18:13:01Z tests/fm-pi-home-leak.test.sh exit=0 duration_ms=197 gate_skip=false
+FM_TEST_SUMMARY total=4 failed=0 skipped_gate=0 duration_ms=92758
+FM_TEST_SUMMARY_FAMILY family=secondmate count=2 duration_ms=60698 failed=0
+FM_TEST_SUMMARY_FAMILY family=session-bootstrap count=1 duration_ms=61177 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=197 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-sessionstart-nudge.test.sh duration_ms=61177
+FM_TEST_SLOWEST rank=2 script=tests/fm-secondmate-liveness.test.sh duration_ms=31161
+FM_TEST_SLOWEST rank=3 script=tests/fm-secondmate-sync.test.sh duration_ms=29537
+FM_TEST_SLOWEST rank=4 script=tests/fm-pi-home-leak.test.sh duration_ms=197
+exit=0

@@ -1,0 +1,5 @@
+BOOTSTRAP_INFO: tasks-axi available
+SECONDMATE_LIVENESS: secondmate bosunbase: alive but unsupervised: its own session lock names pid 99999999, which is not a live harness; recover with bin/fm-control.sh bosunbase relaunch
+BOOTSTRAP_INFO: secondmate bosunhead already live (backend=tmux)
+SECONDMATE_SYNC: secondmate bosunbase: skipped: primary default-branch commit cannot be resolved
+SECONDMATE_SYNC: secondmate bosunhead: skipped: primary default-branch commit cannot be resolved

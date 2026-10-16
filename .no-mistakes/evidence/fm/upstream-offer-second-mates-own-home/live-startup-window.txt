@@ -1,0 +1,13 @@
+Restored-pane scenario: sm-base (code never retakes own lock under leaked FM_HOME) relaunched fresh; own state/.lock='99999999' (dead pre-restart pid)
+agent pid 4096583 age 3s
+== tick inside window (FM_SESSION_START_TIMEOUT=8)
+tick rc=0
+queue after inside-window tick: ''
+agent age now 12s
+== tick past window (FM_SESSION_START_TIMEOUT=8)
+WAKE: check: secondmate bosunbase alive but unsupervised: its own session lock names pid 99999999, which is not a live harness; recover with bin/fm-control.sh bosunbase relaunch
+tick rc=0
+== repeat tick
+tick rc=0
+== queue:
+1792174658	1	check	secondmate-unsupervised-bosunbase	check: secondmate bosunbase alive but unsupervised: its own session lock names pid 99999999, which is not a live harness; recover with bin/fm-control.sh bosunbase relaunch

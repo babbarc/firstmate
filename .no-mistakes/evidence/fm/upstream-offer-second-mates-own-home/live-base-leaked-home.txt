@@ -1,0 +1,16 @@
+== BASE 5f2b81b: claude launched in secondmate home /tmp/fm-lab.RqtKjI/sm-base with leaked FM_HOME=/tmp/fm-lab.RqtKjI (launcher)
+sm-base/state contents:
+(end)
+launcher state/.lock: 4070401
+home-summary.json
+.inactive-outcome-reconcile
+.lock
+.lock-session
+.session-start-agents-baseline
+.session-start-complete
+.startup-network.report
+.startup-network.status
+.startup-network.timings
+terminal-outcomes
+.trace-context-effective
+.wake-queue
