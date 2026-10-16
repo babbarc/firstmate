@@ -105,7 +105,7 @@ A lock another live session took meanwhile still produces the ordinary read-only
 
 ### Nudge wrapper on a run-tier harness
 
-On a run-tier harness, only `resume`, `reload`, and `fork` are routed to the nudge wrapper.
+On a run-tier harness, only `resume`, `reload`, and `fork` are routed to the nudge wrapper, and only after the shared same-session verdict (`fm_session_lock_owned_by_self`) confirms this process already holds the lock.
 The nudge wrapper has its own separate ancestry-only check, which normally stays silent when this process already holds the lock.
 A background Claude helper-chain recycle can break that ancestry.
 The wrapper may then emit a redundant nudge even though the shared same-session verdict still owns the lock.
