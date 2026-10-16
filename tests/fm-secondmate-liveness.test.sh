@@ -833,17 +833,17 @@ test_watch_tick_leaves_relaunched_agent_in_old_pane_alone() {
   # than the startup bound while the agent itself has only just started.
   printf '99999999\n' > "$w/sm1/state/.lock"
   cp "$(command -v bash)" "$w/claude"
-  bash -c 'sleep 3.2; "$1" -c "sleep 30; :" & wait' _ "$w/claude" >/dev/null 2>&1 &
+  bash -c 'sleep 8; "$1" -c "sleep 30; :" & wait' _ "$w/claude" >/dev/null 2>&1 &
   pane_pid=$!
   SM_PANE_PID=$pane_pid
-  while [ -z "$agent_pid" ] && [ "$i" -lt 100 ]; do
+  while [ -z "$agent_pid" ] && [ "$i" -lt 200 ]; do
     agent_pid=$(LC_ALL=C ps -axo pid=,ppid=,comm= | awk -v p="$pane_pid" '$2 == p && $3 ~ /claude$/ { print $1 }')
     [ -n "$agent_pid" ] || sleep 0.1
     i=$((i + 1))
   done
   [ -n "$agent_pid" ] || fail "the relaunched agent never started under the pane"
 
-  run_watch_liveness_tick "$w" "$wakes" FM_TEST_PANE_PID="$pane_pid" FM_SESSION_START_TIMEOUT=3 \
+  run_watch_liveness_tick "$w" "$wakes" FM_TEST_PANE_PID="$pane_pid" FM_SESSION_START_TIMEOUT=6 \
     || fail "the liveness tick failed during a relaunch into an old pane"
   kill "$agent_pid" "$pane_pid" 2>/dev/null || true
   SM_PANE_PID=

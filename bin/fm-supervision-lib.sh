@@ -119,14 +119,15 @@ FM_SUP_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # fm_sup_endpoint_agent_age <endpoint-pid>: seconds since the endpoint's
 # current agent started - the youngest of <endpoint-pid> itself and each
-# verified harness process in its subtree whose parent is not one (the
+# verified harness process in its subtree with no harness among its ancestors
+# below <endpoint-pid> (the
 # classifier in bin/fm-agent-process-lib.sh), so a relaunch typed into a
 # long-lived pane shell is measured from its new agent, while an old agent's
 # own tool or MCP children never make it look young. Ages come from the
 # portable `ps -o etime=` ([[dd-]hh:]mm:ss). Fails when the endpoint pid is
 # gone or the process table is unreadable.
 fm_sup_endpoint_agent_age() {
-  local root=$1 rows pid ppid secs name args argv0 agents=' ' age=''
+  local root=$1 rows pid ppid secs name args argv0 agents=' ' parents=' ' up age=''
   if ! command -v fm_agent_process_classify >/dev/null 2>&1; then
     # shellcheck source=bin/fm-agent-process-lib.sh
     . "$FM_SUP_LIB_DIR/fm-agent-process-lib.sh"
@@ -162,6 +163,7 @@ fm_sup_endpoint_agent_age() {
     }') || return 1
   while IFS=$'\t' read -r pid ppid secs name; do
     [ "$pid" != "$root" ] || continue
+    parents="$parents$pid:$ppid "
     args=$(LC_ALL=C ps -p "$pid" -o args= 2>/dev/null) || continue
     args=${args#"${args%%[![:space:]]*}"}
     argv0=${args%%[[:space:]]*}
@@ -173,7 +175,13 @@ EOF
     case "$secs" in ''|*[!0-9]*) continue ;; esac
     if [ "$pid" != "$root" ]; then
       case "$agents" in *" $pid "*) ;; *) continue ;; esac
-      case "$agents" in *" $ppid "*) continue ;; esac
+      up=$ppid
+      while [ "$up" != "$root" ]; do
+        case "$agents" in *" $up "*) continue 2 ;; esac
+        case "$parents" in *" $up:"*) ;; *) break ;; esac
+        up=${parents##*" $up:"}
+        up=${up%% *}
+      done
     fi
     if [ -z "$age" ] || [ "$secs" -lt "$age" ]; then age=$secs; fi
   done <<EOF
@@ -224,10 +232,6 @@ fm_supervision_home_verdict() {
   fi
   case "$start_bound" in ''|*[!0-9]*) start_bound=120 ;; esac
   [ "$start_bound" -gt 0 ] || start_bound=120
-  case "$endpoint_pid" in
-    ''|*[!0-9]*) ;;
-    *) endpoint_age=$(fm_sup_endpoint_agent_age "$endpoint_pid") || endpoint_age='' ;;
-  esac
   lock_pid=$(cat "$home/state/.lock" 2>/dev/null || true)
   case "$lock_pid" in
     ''|*[!0-9]*)
@@ -239,6 +243,10 @@ fm_supervision_home_verdict() {
       ;;
   esac
   if [ -n "$FM_SUP_HOME_REASON" ]; then
+    case "$endpoint_pid" in
+      ''|*[!0-9]*) ;;
+      *) endpoint_age=$(fm_sup_endpoint_agent_age "$endpoint_pid") || endpoint_age='' ;;
+    esac
     if [ -n "$endpoint_age" ] && [ "$endpoint_age" -lt "$start_bound" ]; then
       FM_SUP_HOME_OK=starting
       FM_SUP_HOME_REASON="its endpoint agent started ${endpoint_age}s ago and its own session start has not taken its lock yet"
