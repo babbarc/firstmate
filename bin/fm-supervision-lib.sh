@@ -156,7 +156,9 @@ fm_sup_pid_age() {
 # bin/fm-wake-lib.sh, which the caller has loaded) on that home's own state and
 # root under the supervision model of <harness>, its recorded harness, so a
 # Claude mate mid-turn under auto-arm is judged exactly as its own pull guard
-# judges it. Always returns 0; the caller reads the vars. An unreadable or
+# judges it; only its stale-beacon verdict fails, because this check samples the
+# home at arbitrary times and a fresh beacon with no watcher process is an
+# ordinary handling turn. Always returns 0; the caller reads the vars. An unreadable or
 # absent home is a failure with its own reason, never treated as healthy.
 # shellcheck disable=SC2034  # FM_SUP_HOME_OK/FM_SUP_HOME_REASON are read by callers after the call.
 fm_supervision_home_verdict() {
@@ -219,12 +221,8 @@ fm_supervision_home_verdict() {
     model=$(fm_supervision_model "$harness")
     FM_SUPERVISION_MODEL=$model fm_watcher_supervision_verdict \
       "$home/state" "$home/bin/fm-watch.sh" "$grace" "$home" "$home"
-    if [ "$FM_WATCHER_VERDICT_OK" != true ]; then
-      if [ "$FM_WATCHER_VERDICT_REASON" = no-watcher ]; then
-        FM_SUP_HOME_REASON="its watcher is not running while supervision is required"
-      else
-        FM_SUP_HOME_REASON="its watcher beacon is ${FM_SUP_BEACON_DESC} while supervision is required"
-      fi
+    if [ "$FM_WATCHER_VERDICT_OK" != true ] && [ "$FM_WATCHER_VERDICT_REASON" = stale-beacon ]; then
+      FM_SUP_HOME_REASON="its watcher beacon is ${FM_SUP_BEACON_DESC} while supervision is required"
       return 0
     fi
   fi
