@@ -13,14 +13,10 @@
 # parse below owns why.
 #
 # Usage:
-<<<<<<< HEAD
 #   fm-pr-merge.sh <task-id> <pr-url> [--attended-override] [--update-branch]
 #     [--expected-head <full-sha>]
 #     [--allow-red <check>] [--allow-missing <check>] [--allow-no-pipeline]
-=======
-#   fm-pr-merge.sh <task-id> <pr-url> [--attended-override] [--allow-red <check>]
-#     [--allow-missing <check>] [--allow-no-pipeline] [--allow-no-ci]
->>>>>>> f6a8f921 (feat(bin): add an attended --allow-no-ci merge allowance for a head with no CI at all)
+#     [--allow-no-ci]
 #     [-- <forge merge flags>]
 #   fm-pr-merge.sh -h | --help
 #
@@ -240,11 +236,7 @@
 # explicit captain instruction and never skips the live green check, the
 # away-record read, or a captain hold.
 #
-<<<<<<< HEAD
-# Usage: fm-pr-merge.sh <task-id> <pr-url> [--attended-override] [--update-branch] [--expected-head <full-sha>] [--allow-red <check-name>] [--allow-missing <check-name>] [--allow-no-pipeline] [-- <extra forge merge args>]
-=======
-# Usage: fm-pr-merge.sh <task-id> <pr-url> [--attended-override] [--allow-red <check-name>] [--allow-missing <check-name>] [--allow-no-pipeline] [--allow-no-ci] [-- <extra forge merge args>]
->>>>>>> f6a8f921 (feat(bin): add an attended --allow-no-ci merge allowance for a head with no CI at all)
+# Usage: fm-pr-merge.sh <task-id> <pr-url> [--attended-override] [--update-branch] [--expected-head <full-sha>] [--allow-red <check-name>] [--allow-missing <check-name>] [--allow-no-pipeline] [--allow-no-ci] [-- <extra forge merge args>]
 #
 # On GitLab, this script confirms the MR is actually merged before reporting it;
 # an auto-merge-queued or unconfirmed request leaves the poll armed and records
@@ -328,11 +320,8 @@ UPDATE_BRANCH=false
 ALLOW_NO_PIPELINE=false
 ALLOW_RED=()
 ALLOW_MISSING=()
-<<<<<<< HEAD
 EXPECTED_HEAD=
-=======
 ALLOW_NO_CI=false
->>>>>>> f6a8f921 (feat(bin): add an attended --allow-no-ci merge allowance for a head with no CI at all)
 while [ "$#" -gt 0 ]; do
   case "$1" in
     --attended-override)
@@ -379,7 +368,6 @@ while [ "$#" -gt 0 ]; do
       echo "error: --allow-no-pipeline takes no value" >&2
       exit 2
       ;;
-<<<<<<< HEAD
     --expected-head)
       if [ -n "$EXPECTED_HEAD" ]; then
         echo "error: --expected-head may be specified only once" >&2
@@ -396,7 +384,8 @@ while [ "$#" -gt 0 ]; do
       ;;
     --expected-head=*)
       echo "error: --expected-head requires a separate full commit sha argument" >&2
-=======
+      exit 2
+      ;;
     --allow-no-ci)
       [ "$ALLOW_NO_CI" = false ] || { echo "error: --allow-no-ci may be specified only once" >&2; exit 2; }
       ALLOW_NO_CI=true
@@ -404,7 +393,6 @@ while [ "$#" -gt 0 ]; do
       ;;
     --allow-no-ci=*)
       echo "error: --allow-no-ci takes no value" >&2
->>>>>>> f6a8f921 (feat(bin): add an attended --allow-no-ci merge allowance for a head with no CI at all)
       exit 2
       ;;
     --) shift; break ;;

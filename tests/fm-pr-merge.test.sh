@@ -5975,4 +5975,3 @@ test_allow_no_ci_merges_only_an_absent_forgejo_status
 test_allow_no_ci_merges_only_an_absent_gitlab_pipeline
 test_allow_no_ci_is_attended_only_and_one_shot
 test_allow_no_ci_refused_on_github
- (feat(bin): add an attended --allow-no-ci merge allowance for a head with no CI at all)
