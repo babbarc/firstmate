@@ -1,0 +1,19 @@
+$ git diff --stat
+ tests/assets/board-render-harness.mjs | 1 +
+ 1 file changed, 1 insertion(+)
+
+# AFTER (target 9efbab9): bin/fm-test-run.sh --list --changed --base HEAD
+tests/fm-bearings-board-render.test.sh
+tests/fm-bearings-snapshot.test.sh
+tests/fm-contributions.test.sh
+tests/fm-fleet-snapshot-view.test.sh
+tests/fm-home-summary-refresh.test.sh
+exit=0
+
+# BEFORE (base 1a6714f runner):
+fm-test-run: changed-file base ref not found: HEAD (pass --base <ref>)
+exit=2
+
+# BEFORE (base 1a6714f runner placed at bin/fm-test-run.sh): bin/fm-test-run.sh --list --changed --base HEAD
+fm-test-run: no changed-test mapping for source path: tests/assets/board-render-harness.mjs
+exit=2
