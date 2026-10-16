@@ -1144,7 +1144,8 @@ secondmate_liveness_tick() {
         if [ -z "$(fm_meta_get "$meta" remote_host 2>/dev/null || true)" ] \
           && [ -n "$home" ] && [ -d "$home/state" ]; then
           fm_supervision_home_verdict "$home" "" \
-            "$(fm_backend_endpoint_pid "$FM_SM_LIVE_BACKEND" "$FM_SM_LIVE_TARGET")"
+            "$(fm_backend_endpoint_pid "$FM_SM_LIVE_BACKEND" "$FM_SM_LIVE_TARGET")" \
+            "$(fm_meta_get "$meta" harness 2>/dev/null || true)"
           if [ "$FM_SUP_HOME_OK" != no ]; then
             rm -f "$unsup_marker"
           elif [ ! -e "$unsup_marker" ]; then

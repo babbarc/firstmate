@@ -821,6 +821,36 @@ test_watch_tick_reports_restored_dead_lock_once_after_startup_window() {
   pass "watch tick: a dead lock is left alone inside the startup window and reported exactly once after it"
 }
 
+test_watch_tick_leaves_midturn_autoarm_mate_with_stale_beacon_alone() {
+  local w wakes queue recovery=tick-autoarm-generation
+  w=$(new_world tick-autoarm-midturn)
+  add_sm_home "$w" sm1 firstmate:fm-sm1 claude
+  wakes="$w/wakes.log"; : > "$wakes"; : > "$w/calls.log"
+  queue="$w/home/state/.wake-queue"
+  # A healthy Claude mate mid-turn under auto-arm: in-flight work needs
+  # supervision, its watcher exited on its wake, and the handling turn has
+  # outrun grace, but a rewake bound to its live lock and current recovery
+  # generation explains the stale beacon.
+  : > "$w/sm1/state/child.meta"
+  printf 'epoch=7 owner_pid=1 outcome=rewake updated_at=1 session_pid=%s recovery_generation=%s\n' \
+    "$SM_FAKE_HARNESS_PID" "$recovery" > "$w/sm1/state/.claude-autoarm-epoch"
+  printf 'acked:handling:%s\n' "$recovery" > "$w/sm1/state/.watcher-down"
+  touch -t 201901010000 "$w/sm1/state/.last-watcher-beat"
+  touch -t 202001010000 "$w/sm1/state/.claude-autoarm-epoch"
+
+  run_watch_liveness_tick "$w" "$wakes" || fail "the liveness tick failed for a mid-turn auto-arm mate"
+  [ ! -s "$wakes" ] || fail "a healthy mid-turn auto-arm mate must not be reported: $(cat "$wakes")"
+  ! grep -q 'secondmate-unsupervised-sm1' "$queue" 2>/dev/null \
+    || fail "a healthy mid-turn auto-arm mate queued an unsupervised row: $(cat "$queue")"
+
+  # Without the rewake that explains it, the same stale beacon is a lapse.
+  rm -f "$w/sm1/state/.claude-autoarm-epoch"
+  run_watch_liveness_tick "$w" "$wakes" || fail "the liveness tick failed for a lapsed auto-arm mate"
+  assert_contains "$(cat "$queue" 2>/dev/null)" "check: secondmate sm1 alive but unsupervised: its watcher beacon is" \
+    "an auto-arm mate whose stale beacon no rewake explains must be reported"
+  pass "watch tick: a stale beacon explained by a live auto-arm rewake is not reported; an unexplained one is"
+}
+
 test_sweep_reports_alive_but_unsupervised_missing_completion() {
   local w fb tmuxfb log out
   w=$(new_world sweep-no-completion)
@@ -1013,6 +1043,7 @@ test_sweep_never_acts_on_unverified_harness_dead_reading
 test_sweep_converges_no_retouch_once_alive
 test_sweep_reports_alive_but_unsupervised_stale_lock
 test_watch_tick_reports_restored_dead_lock_once_after_startup_window
+test_watch_tick_leaves_midturn_autoarm_mate_with_stale_beacon_alone
 test_sweep_reports_alive_but_unsupervised_missing_completion
 test_sweep_stays_quiet_while_secondmate_startup_is_in_progress
 test_sweep_reports_alive_but_unsupervised_stale_beacon
