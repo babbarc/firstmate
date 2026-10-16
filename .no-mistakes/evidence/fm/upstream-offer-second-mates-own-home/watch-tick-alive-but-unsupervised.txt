@@ -1,0 +1,28 @@
+Lab primary home: /tmp/fm-lab.7vulrc/main (backend tmux on private fm-lab socket)
+sm1 = base-built mate (alive claude, own home never took its lock); sm2 = HEAD-built mate (alive, own lock+completion)
+--- sm1.meta
+window=smbase:fm-sm1
+kind=secondmate
+harness=claude
+home=/tmp/fm-lab.7vulrc/sm-base
+--- sm2.meta
+window=sm:fm-sm2
+kind=secondmate
+harness=claude
+home=/tmp/fm-lab.7vulrc/sm-head
+--- panes:
+sm:fm-sm2 pid=2566884 cmd=claude
+smbase:fm-sm1 pid=2578452 cmd=claude
+--- tick 1 wakes:
+WAKE: check: secondmate sm1 alive but unsupervised: its own session lock is absent or malformed; recover with bin/fm-control.sh sm1 relaunch
+tick rc=0
+--- tick 2 wakes (repeat suppressed):
+tick rc=0
+--- primary wake queue:
+1792193237	5	check	secondmate-unsupervised-sm1	check: secondmate sm1 alive but unsupervised: its own session lock is absent or malformed; recover with bin/fm-control.sh sm1 relaunch
+--- markers:
+.secondmate-liveness-tick
+.secondmate-unsupervised-sm1
+--- claude pids still alive after ticks:
+2566884 claude
+2578452 claude

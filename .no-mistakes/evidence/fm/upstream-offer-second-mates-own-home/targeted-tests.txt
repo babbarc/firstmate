@@ -1,0 +1,40 @@
+ok - fm-sessionstart-nudge: a marked linked secondmate home is a primary
+ok - run wrapper: startup runs the full digest and never also nudges
+ok - run wrapper: clear and compact re-emit the digest without repeating startup sweeps
+ok - run wrapper refreshes a compact even when startup completion is unproven
+ok - run wrapper: clear falls back to full startup when completion is unproven
+ok - run wrapper: an owned resume hook payload stays silent while a startup would take the helm
+ok - run wrapper and home lib: a seeded secondmate home wins over a leaked launcher FM_HOME, an unmarked root is untouched, and no new FM_ROOT export reaches a child
+ok - secondmate scripts derive every state path from their own home under a leaked launcher FM_HOME
+ok - Pi distinguishes header-proven restored CLI sessions from named create-if-missing startups
+ok - Pi provider preflight owns one generation-bound startup prerequisite with deterministic fallback, replacement, cancellation, timeout, and truncation
+ok - Pi reload shutdown releases its exit listener and stale startup generation
+ok - T1 updated: a behind home fast-forwards to the primary's local HEAD
+ok - T2 current: an already-current home is a no-op and reports no instruction change
+ok - T3 dirty: an uncommitted home is skipped, its edit preserved
+ok - scratchpad2/ does not mark a secondmate home dirty for the sync guard
+ok - T4 diverged: a home that is not an ancestor of the primary's HEAD is skipped
+ok - T5 in-flight: a home on a feature branch is skipped, its work preserved
+ok - T8 bootstrap sweeps live homes and sends exactly one marked nudge for the instruction change
+ok - T8e bootstrap nudge retry refuses a changed home instead of guessing
+ok - T9 bootstrap surfaces a skipped dirty live secondmate home
+ok - T12 gitignored marker: a freshly seeded home reads clean to fleet-sync and the ff sweep
+ok - T13 gitignored marker: an existing marker-only-dirty home converges, then reads clean
+ok - T14 marker tolerance does not mask a genuinely dirty home
+ok - R1 a remote home ahead of the host's Firstmate copy still advances to the primary's commit
+ok - R3 a target neither side holds is imported from the home's own origin
+ok - R4 an already-present target advances the home with no fetch available
+ok - R6 dirty, diverged, and feature-branch remote homes skip and are left untouched
+ok - R8 session start converges a remote home on the primary's default-branch commit
+ok - R9 a remote launch leaves the home on the parent's commit while an ordinary spawn follows its own checkout
+# all fm-secondmate-sync tests passed
+ok - Pi restored second mate resolves its own home despite a leaked launcher FM_HOME/FM_ROOT_OVERRIDE
+# all fm-pi-home-leak tests passed
+ok - sweep: an authoritatively missing Pi secondmate window is relaunched
+ok - sweep: an authoritatively missing pi-signed secondmate window is relaunched
+ok - watch tick: a dead lock is left alone inside the startup window and reported exactly once after it
+ok - watch tick: a dead lock under a just-relaunched agent in an old pane is left alone
+ok - sweep: a live lock without matching startup completion is reported as unsupervised
+ok - sweep: a silent no-op with no kind=secondmate meta present (a secondmate home's own natural scoping)
+# all fm-secondmate-liveness tests passed
+fm-pi-home-leak rc=0

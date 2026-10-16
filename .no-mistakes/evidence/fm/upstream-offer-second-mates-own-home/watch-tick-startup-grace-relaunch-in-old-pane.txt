@@ -1,0 +1,14 @@
+Live lab (tmux fm-lab socket), HEAD bin/fm-watch.sh secondmate_liveness_tick, FM_SESSION_START_TIMEOUT=10.
+sm3 home: own state/.lock names dead pid 99999999. Pane fm-sm3 = bash shell started first; `claude` typed into it ~15s later (relaunch-into-old-pane shape).
+Process tree at first tick:
+    PID    PPID     ELAPSED COMMAND
+2602293 2566883       00:30 bash      (pane shell, older than the 10s bound)
+2609908 2602293       00:03 claude    (new agent, younger than the bound)
+--- tick inside window: (no wake, no queued row, no marker)
+tick rc=0
+--- 14s later, agent ELAPSED 00:17 (past bound):
+WAKE: check: secondmate sm3 alive but unsupervised: its own session lock names pid 99999999, which is not a live harness; recover with bin/fm-control.sh sm3 relaunch
+tick rc=0
+queue row: check  secondmate-unsupervised-sm3  check: secondmate sm3 alive but unsupervised: its own session lock names pid 99999999, which is not a live harness; recover with bin/fm-control.sh sm3 relaunch
+marker: .secondmate-unsupervised-sm3
+(sm1's existing marker suppressed any repeat sm1 report on these ticks)

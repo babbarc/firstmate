@@ -1,0 +1,6 @@
+root=/tmp/fm-lab.7vulrc/sm-head marker=yes
+  after sourcing: FM_HOME=/tmp/fm-lab.7vulrc/sm-head FM_ROOT_OVERRIDE=/tmp/fm-lab.7vulrc/sm-head FM_ROOT=<unset>
+  exported FM_ROOT count in child: 0
+root=/tmp/fm-lab.7vulrc/unmarked marker=no
+  after sourcing: FM_HOME=/tmp/fm-lab.7vulrc/main FM_ROOT_OVERRIDE=/tmp/fm-lab.7vulrc/main FM_ROOT=<unset>
+  exported FM_ROOT count in child: 0

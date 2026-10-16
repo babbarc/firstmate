@@ -1,0 +1,13 @@
+== HEAD secondmate (marked root /tmp/fm-lab.7vulrc/sm-head), claude launched with leaked FM_HOME=/tmp/fm-lab.7vulrc/main
+ ▐▛███▛█   Claude Code v2.1.302
+▝▜██████▀  Opus 5.5 · Claude Pro
+ ▝▝   ▝▝   /tmp/fm-lab.7vulrc/sm-head
+⚠ Your login expires in 2 days · run /login to renew
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ Try "fix typecheck errors"
+sm-head/state/.lock: 2566884  .session-start-complete: 2566884
+lock pid comm: claude
+
+== BASE secondmate (aa9ab04, marked root /tmp/fm-lab.7vulrc/sm-base), same leaked FM_HOME
+sm-base/state contents: (empty = never took own lock)
+leaked main/state/.lock: 2578452 comm=claude
