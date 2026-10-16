@@ -1,0 +1,10 @@
+=== 1a6714f: bin/fm-test-run.sh --list --changed --base HEAD (tests/assets/board-render-harness.mjs modified)
+fm-test-run: no changed-test mapping for source path: tests/assets/board-render-harness.mjs
+exit=2
+=== 53c0b32: bin/fm-test-run.sh --list --changed --base HEAD (tests/assets/board-render-harness.mjs modified)
+tests/fm-bearings-board-render.test.sh
+tests/fm-bearings-snapshot.test.sh
+tests/fm-contributions.test.sh
+tests/fm-fleet-snapshot-view.test.sh
+tests/fm-home-summary-refresh.test.sh
+exit=0

@@ -1,0 +1,7 @@
+### focused regression: test_changed_shared_fixture_selects_its_readers
+--- with fixed runner (53c0b32):
+ok - a changed shared test fixture or asset selects its readers while an unread tests/ path still refuses
+exit=0
+--- with base runner (1a6714f), same test:
+fm-test-run: no changed-test mapping for source path: tests/assets/probe-harness.mjs
+exit=2
