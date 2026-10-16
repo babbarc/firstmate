@@ -1,0 +1,13 @@
+Added lines (base 1a6714f..1814b75), with their section context:
++++ b/.agents/skills/diagnostic-reasoning/SKILL.md
+@@ -6,0 +7 @@ description: >-
++  Also load before asserting a capability or fix works: verify the behavioral effect end to end, or label it an unverified hypothesis, rather than inferring it from an API or tool surface alone.
++++ b/AGENTS.md
+@@ -246,0 +247 @@ After an autonomous merge, give the captain a one-line full-URL or local-main ou
++When the head recorded for a task disagrees with the live remote head, stop and surface the discrepancy as a decision or flagged assumption before merging.
+@@ -401,0 +403 @@ The scaffold is a safety contract, not a suggestion.
++Instruct workers to capture a gate's exit status explicitly and never let a pipe or formatter consume it when the verdict is the status.
+
+Changed files:
+.agents/skills/diagnostic-reasoning/SKILL.md
+AGENTS.md

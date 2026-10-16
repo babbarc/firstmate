@@ -1,0 +1,32 @@
+diff --git a/.agents/skills/diagnostic-reasoning/SKILL.md b/.agents/skills/diagnostic-reasoning/SKILL.md
+index dc65196..f069f7e 100644
+--- a/.agents/skills/diagnostic-reasoning/SKILL.md
++++ b/.agents/skills/diagnostic-reasoning/SKILL.md
+@@ -4,6 +4,7 @@ description: >-
+   Agent-only procedure for diagnosing reported bugs.
+   Use before scoping a reported bug and before acting on a diagnostic report.
+   Owns end-user-aligned reproduction, causal separation, divergent-path and history inspection, counterfactual testing, and disconfirming evidence.
++  Also load before asserting a capability or fix works: verify the behavioral effect end to end, or label it an unverified hypothesis, rather than inferring it from an API or tool surface alone.
+ user-invocable: false
+ metadata:
+   internal: true
+diff --git a/AGENTS.md b/AGENTS.md
+index 2e6b25d..99f2cf4 100644
+--- a/AGENTS.md
++++ b/AGENTS.md
+@@ -244,6 +244,7 @@ Without a current explicit captain instruction that states the concrete merge, t
+ Load `ask-user-authority` and `validation-supervision` before deciding or answering any ask-user finding; the implementation worker never answers its own finding.
+ Use `bin/fm-pr-merge.sh` for every task PR merge so merge metadata is recorded and an unproved merge is refused instead of reported as landed, and use `bin/fm-merge-local.sh` for approved local-only landing; never call a lower-level merge command around their guards.
+ After an autonomous merge, give the captain a one-line full-URL or local-main outcome.
++When the head recorded for a task disagrees with the live remote head, stop and surface the discrepancy as a decision or flagged assumption before merging.
+ 
+ ### Validate
+ 
+@@ -399,6 +400,7 @@ The generated Herdr contract must use a named non-`default` isolated lab and its
+ Load `secondmate-provisioning` before creating or using a charter brief and preserve its idle-by-default and marked-return-channel contracts.
+ Status appends are sparse supervisor-actionable events, not routine progress; `bin/fm-classify-lib.sh` owns keyed open and resolved semantics.
+ The scaffold is a safety contract, not a suggestion.
++Instruct workers to capture a gate's exit status explicitly and never let a pipe or formatter consume it when the verdict is the status.
+ 
+ ## 12. Self-update
+ 
