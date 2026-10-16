@@ -288,7 +288,8 @@ SH
 
 # make_liveness_tmux <dir>: a controllable tmux stub. FM_TEST_PANE_CMD may be
 # a foreground command, `missing` (readable inventory omits the window), or
-# `unreadable` (both pane and inventory reads fail).
+# `unreadable` (both pane and inventory reads fail). FM_TEST_PANE_PID, when
+# set, is the pane's own process (`#{pane_pid}`).
 make_liveness_tmux() {
   local dir=$1 fakebin
   fakebin=$(fm_fakebin "$dir")
@@ -317,6 +318,10 @@ case "${1:-}" in
             unreadable) exit 1 ;;
             *) printf '%s\n' "$mode"; exit 0 ;;
           esac
+          ;;
+        *pane_pid*)
+          [ -n "${FM_TEST_PANE_PID:-}" ] || exit 1
+          printf '%s\n' "$FM_TEST_PANE_PID"; exit 0
           ;;
       esac
     done
@@ -751,6 +756,52 @@ test_sweep_reports_alive_but_unsupervised_stale_lock() {
   pass "sweep: an alive endpoint whose own session lock is stale is reported, not silently accepted"
 }
 
+test_sweep_stays_quiet_while_restored_endpoint_has_not_taken_its_lock() {
+  local w fb tmuxfb log out pane_pid
+  w=$(new_world sweep-restored-before-lock)
+  add_sm_home "$w" sm1 firstmate:fm-sm1 pi
+  # The post-reboot shape before the restored agent's own session start
+  # reaches its lock: the endpoint was just recreated, while the lock still
+  # names the dead pre-reboot pid.
+  printf '99999999\n' > "$w/sm1/state/.lock"
+  sleep 600 &
+  pane_pid=$!
+  fb=$(make_toolchain "$w"); tmuxfb=$(make_liveness_tmux "$w")
+  log="$w/calls.log"; : > "$log"
+
+  out=$(run_bootstrap "$tmuxfb:$fb" "$w/home" claude "$log" FM_TEST_PANE_PID="$pane_pid")
+  kill "$pane_pid" 2>/dev/null || true
+
+  assert_not_contains "$out" "SECONDMATE_LIVENESS: secondmate sm1" \
+    "a freshly restored endpoint whose session start has not taken its lock yet must not be told to relaunch"
+  [ ! -s "$log" ] || fail "a restored startup must not be killed or respawned: $(cat "$log")"
+  pass "sweep: a dead lock on an endpoint younger than the session-start bound is left to finish starting"
+}
+
+test_sweep_reports_dead_lock_once_restored_endpoint_outlives_startup_bound() {
+  local w fb tmuxfb log out pane_pid i=0
+  w=$(new_world sweep-restored-past-bound)
+  add_sm_home "$w" sm1 firstmate:fm-sm1 pi
+  printf '99999999\n' > "$w/sm1/state/.lock"
+  sleep 600 &
+  pane_pid=$!
+  while [ "$(LC_ALL=C ps -o etime= -p "$pane_pid" | tr -d '[:space:]')" = 00:00 ] && [ "$i" -lt 50 ]; do
+    sleep 0.1
+    i=$((i + 1))
+  done
+  fb=$(make_toolchain "$w"); tmuxfb=$(make_liveness_tmux "$w")
+  log="$w/calls.log"; : > "$log"
+
+  out=$(run_bootstrap "$tmuxfb:$fb" "$w/home" claude "$log" \
+    FM_TEST_PANE_PID="$pane_pid" FM_SESSION_START_TIMEOUT=1)
+  kill "$pane_pid" 2>/dev/null || true
+
+  assert_contains "$out" "SECONDMATE_LIVENESS: secondmate sm1: alive but unsupervised: its own session lock names pid 99999999, which is not a live harness; recover with bin/fm-control.sh sm1 relaunch" \
+    "an endpoint older than the session-start bound whose lock is still dead must be reported as unsupervised"
+  [ ! -s "$log" ] || fail "an alive-but-unsupervised secondmate must not be killed or respawned: $(cat "$log")"
+  pass "sweep: a dead lock on an endpoint older than the session-start bound is reported as unsupervised"
+}
+
 test_sweep_reports_alive_but_unsupervised_missing_completion() {
   local w fb tmuxfb log out
   w=$(new_world sweep-no-completion)
@@ -942,6 +993,8 @@ test_sweep_reports_missing_endpoint_relaunch_failure
 test_sweep_never_acts_on_unverified_harness_dead_reading
 test_sweep_converges_no_retouch_once_alive
 test_sweep_reports_alive_but_unsupervised_stale_lock
+test_sweep_stays_quiet_while_restored_endpoint_has_not_taken_its_lock
+test_sweep_reports_dead_lock_once_restored_endpoint_outlives_startup_bound
 test_sweep_reports_alive_but_unsupervised_missing_completion
 test_sweep_stays_quiet_while_secondmate_startup_is_in_progress
 test_sweep_reports_alive_but_unsupervised_stale_beacon

@@ -117,7 +117,27 @@ fm_supervision_unhealthy() {
 
 FM_SUP_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# fm_supervision_home_verdict <home> [grace-seconds]
+# fm_sup_pid_age <pid>: seconds since <pid> started, from the portable
+# `ps -o etime=` ([[dd-]hh:]mm:ss). Fails when the pid is gone or unreadable.
+fm_sup_pid_age() {
+  local etime
+  etime=$(LC_ALL=C ps -o etime= -p "$1" 2>/dev/null) || return 1
+  printf '%s\n' "$etime" | awk '
+    { gsub(/[[:space:]]/, "") }
+    !/^[0-9][0-9:-]*[0-9]$/ { exit 1 }
+    {
+      days = 0
+      if (index($0, "-")) { days = substr($0, 1, index($0, "-") - 1); $0 = substr($0, index($0, "-") + 1) }
+      n = split($0, part, ":")
+      secs = 0
+      for (i = 1; i <= n; i++) secs = secs * 60 + part[i]
+      print days * 86400 + secs
+      ok = 1
+    }
+    END { exit(ok ? 0 : 1) }'
+}
+
+# fm_supervision_home_verdict <home> [grace-seconds] [endpoint-pid]
 # The cross-home supervision check a primary can run against a secondmate home
 # it does not itself occupy: a home is supervised only when its session lock
 # names a live harness process, its startup completion record names that same
@@ -125,16 +145,19 @@ FM_SUP_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # Endpoint liveness cannot decide this, because the leaked/restored session this
 # predicate exists to catch has a genuinely running agent. Sets
 # FM_SUP_HOME_OK=yes|no|starting and, on no or starting, FM_SUP_HOME_REASON to
-# a short cause. starting means the live lock is younger than the session-start
-# runtime bound (FM_SESSION_START_TIMEOUT, default 120s) with no completion yet:
-# that home's own session start may still be running, so it is neither healthy
-# nor a reason to relaunch. Always returns 0; the caller reads the vars. An
-# unreadable or absent home is a failure with its own reason, never treated as
-# healthy.
+# a short cause. starting means that home's own session start may still be
+# running, so it is neither healthy nor a reason to relaunch: either the live
+# lock is younger than the session-start runtime bound (FM_SESSION_START_TIMEOUT,
+# default 120s) with no completion yet, or the lock is absent or names a dead
+# pid while the endpoint-pid process (the secondmate's backend endpoint, see
+# fm_backend_endpoint_pid) is younger than that same bound - a freshly restored
+# agent that has not reached its own lock yet. Past that bound the same shapes
+# are failures. Always returns 0; the caller reads the vars. An unreadable or
+# absent home is a failure with its own reason, never treated as healthy.
 # shellcheck disable=SC2034  # FM_SUP_HOME_OK/FM_SUP_HOME_REASON are read by callers after the call.
 fm_supervision_home_verdict() {
-  local home=$1 grace=${2:-${FM_GUARD_GRACE:-300}} lock_pid complete_pid
-  local start_bound=${FM_SESSION_START_TIMEOUT:-120} lock_mtime
+  local home=$1 grace=${2:-${FM_GUARD_GRACE:-300}} endpoint_pid=${3:-} lock_pid complete_pid
+  local start_bound=${FM_SESSION_START_TIMEOUT:-120} lock_mtime endpoint_age=''
   FM_SUP_HOME_OK=no
   FM_SUP_HOME_REASON=""
   if [ -z "$home" ] || [ ! -d "$home/state" ]; then
@@ -145,21 +168,31 @@ fm_supervision_home_verdict() {
     # shellcheck source=bin/fm-session-lock-lib.sh
     . "$FM_SUP_LIB_DIR/fm-session-lock-lib.sh"
   fi
+  case "$start_bound" in ''|*[!0-9]*) start_bound=120 ;; esac
+  [ "$start_bound" -gt 0 ] || start_bound=120
+  case "$endpoint_pid" in
+    ''|*[!0-9]*) ;;
+    *) endpoint_age=$(fm_sup_pid_age "$endpoint_pid") || endpoint_age='' ;;
+  esac
   lock_pid=$(cat "$home/state/.lock" 2>/dev/null || true)
   case "$lock_pid" in
     ''|*[!0-9]*)
       FM_SUP_HOME_REASON="its own session lock is absent or malformed"
-      return 0
+      ;;
+    *)
+      fm_harness_pid_alive "$lock_pid" \
+        || FM_SUP_HOME_REASON="its own session lock names pid $lock_pid, which is not a live harness"
       ;;
   esac
-  if ! fm_harness_pid_alive "$lock_pid"; then
-    FM_SUP_HOME_REASON="its own session lock names pid $lock_pid, which is not a live harness"
+  if [ -n "$FM_SUP_HOME_REASON" ]; then
+    if [ -n "$endpoint_age" ] && [ "$endpoint_age" -lt "$start_bound" ]; then
+      FM_SUP_HOME_OK=starting
+      FM_SUP_HOME_REASON="its endpoint started ${endpoint_age}s ago and its own session start has not taken its lock yet"
+    fi
     return 0
   fi
   complete_pid=$(cat "$home/state/.session-start-complete" 2>/dev/null || true)
   if [ "$complete_pid" != "$lock_pid" ]; then
-    case "$start_bound" in ''|*[!0-9]*) start_bound=120 ;; esac
-    [ "$start_bound" -gt 0 ] || start_bound=120
     lock_mtime=$(fm_sup_stat_mtime "$home/state/.lock")
     case "$lock_mtime" in
       ''|*[!0-9]*) ;;
