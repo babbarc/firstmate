@@ -756,6 +756,9 @@ test_sweep_reports_alive_but_unsupervised_missing_completion() {
   w=$(new_world sweep-no-completion)
   add_sm_home "$w" sm1 firstmate:fm-sm1 pi
   rm -f "$w/sm1/state/.session-start-complete"
+  # Older than the session-start runtime bound, so no startup can still be
+  # running for this lock.
+  fm_touch_epoch "$(( $(date +%s) - 600 ))" "$w/sm1/state/.lock"
   fb=$(make_toolchain "$w"); tmuxfb=$(make_liveness_tmux "$w")
   log="$w/calls.log"; : > "$log"
 
@@ -765,6 +768,24 @@ test_sweep_reports_alive_but_unsupervised_missing_completion() {
     "a live lock with no matching startup completion must be reported as unsupervised"
   [ ! -s "$log" ] || fail "a missing completion record must not license recovery: $(cat "$log")"
   pass "sweep: a live lock without matching startup completion is reported as unsupervised"
+}
+
+test_sweep_stays_quiet_while_secondmate_startup_is_in_progress() {
+  local w fb tmuxfb log out
+  w=$(new_world sweep-startup-in-progress)
+  add_sm_home "$w" sm1 firstmate:fm-sm1 pi
+  # The post-reboot shape: the secondmate's own session start has just taken
+  # its lock and has not yet reached its completion record.
+  rm -f "$w/sm1/state/.session-start-complete"
+  fb=$(make_toolchain "$w"); tmuxfb=$(make_liveness_tmux "$w")
+  log="$w/calls.log"; : > "$log"
+
+  out=$(run_bootstrap "$tmuxfb:$fb" "$w/home" claude "$log")
+
+  assert_not_contains "$out" "SECONDMATE_LIVENESS: secondmate sm1" \
+    "a secondmate whose own session start is still in progress must not be told to relaunch"
+  [ ! -s "$log" ] || fail "an in-progress startup must not be killed or respawned: $(cat "$log")"
+  pass "sweep: a live lock younger than the session-start bound without completion is left to finish"
 }
 
 test_sweep_reports_alive_but_unsupervised_stale_beacon() {
@@ -922,6 +943,7 @@ test_sweep_never_acts_on_unverified_harness_dead_reading
 test_sweep_converges_no_retouch_once_alive
 test_sweep_reports_alive_but_unsupervised_stale_lock
 test_sweep_reports_alive_but_unsupervised_missing_completion
+test_sweep_stays_quiet_while_secondmate_startup_is_in_progress
 test_sweep_reports_alive_but_unsupervised_stale_beacon
 test_sweep_skipped_under_detect_only
 test_sweep_noop_with_no_secondmate_meta

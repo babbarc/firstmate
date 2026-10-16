@@ -124,12 +124,17 @@ FM_SUP_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # pid, and - when the home actually needs a watcher - its beacon is fresh.
 # Endpoint liveness cannot decide this, because the leaked/restored session this
 # predicate exists to catch has a genuinely running agent. Sets
-# FM_SUP_HOME_OK=yes|no and, on no, FM_SUP_HOME_REASON to a short cause. Always
-# returns 0; the caller reads the vars. An unreadable or absent home is a
-# failure with its own reason, never treated as healthy.
+# FM_SUP_HOME_OK=yes|no|starting and, on no or starting, FM_SUP_HOME_REASON to
+# a short cause. starting means the live lock is younger than the session-start
+# runtime bound (FM_SESSION_START_TIMEOUT, default 120s) with no completion yet:
+# that home's own session start may still be running, so it is neither healthy
+# nor a reason to relaunch. Always returns 0; the caller reads the vars. An
+# unreadable or absent home is a failure with its own reason, never treated as
+# healthy.
 # shellcheck disable=SC2034  # FM_SUP_HOME_OK/FM_SUP_HOME_REASON are read by callers after the call.
 fm_supervision_home_verdict() {
   local home=$1 grace=${2:-${FM_GUARD_GRACE:-300}} lock_pid complete_pid
+  local start_bound=${FM_SESSION_START_TIMEOUT:-120} lock_mtime
   FM_SUP_HOME_OK=no
   FM_SUP_HOME_REASON=""
   if [ -z "$home" ] || [ ! -d "$home/state" ]; then
@@ -153,6 +158,19 @@ fm_supervision_home_verdict() {
   fi
   complete_pid=$(cat "$home/state/.session-start-complete" 2>/dev/null || true)
   if [ "$complete_pid" != "$lock_pid" ]; then
+    case "$start_bound" in ''|*[!0-9]*) start_bound=120 ;; esac
+    [ "$start_bound" -gt 0 ] || start_bound=120
+    lock_mtime=$(fm_sup_stat_mtime "$home/state/.lock")
+    case "$lock_mtime" in
+      ''|*[!0-9]*) ;;
+      *)
+        if [ $(( $(date +%s) - lock_mtime )) -lt "$start_bound" ]; then
+          FM_SUP_HOME_OK=starting
+          FM_SUP_HOME_REASON="its own session start is still in progress for live lock pid $lock_pid"
+          return 0
+        fi
+        ;;
+    esac
     FM_SUP_HOME_REASON="its own startup completion is not recorded for live lock pid $lock_pid"
     return 0
   fi

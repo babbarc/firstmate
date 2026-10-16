@@ -171,6 +171,8 @@ export -n TYPESAFE_API_KEY_PRIVATE 2>/dev/null || true
 unset TYPESAFE_API_KEY
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=bin/fm-home-lib.sh
+. "$SCRIPT_DIR/fm-home-lib.sh"
 FM_ROOT="${FM_ROOT_OVERRIDE:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 FM_HOME="${FM_HOME:-${FM_ROOT_OVERRIDE:-$FM_ROOT}}"
 PROJECTS="${FM_PROJECTS_OVERRIDE:-$FM_HOME/projects}"
@@ -769,11 +771,13 @@ secondmate_liveness_one() {  # <meta> <id>
       # genuinely running, so the endpoint reads alive while nothing polls its
       # checks. Judge the home's OWN supervision from the outside and report
       # the gap actionably. Recovery stays an explicit control-plane relaunch,
-      # because an alive agent is not a recovery-grade dead/missing state.
+      # because an alive agent is not a recovery-grade dead/missing state. A
+      # home whose own session start is still in progress is not reported: a
+      # relaunch would kill a healthy startup, and the next sweep re-judges it.
       home=$(fm_meta_get "$meta" home)
       if [ -z "$(fm_meta_get "$meta" remote_host)" ] && [ -n "$home" ] && [ -d "$home/state" ]; then
         fm_supervision_home_verdict "$home"
-        if [ "$FM_SUP_HOME_OK" != yes ]; then
+        if [ "$FM_SUP_HOME_OK" = no ]; then
           echo "SECONDMATE_LIVENESS: secondmate $id: alive but unsupervised: $FM_SUP_HOME_REASON; recover with bin/fm-control.sh $id relaunch"
         elif [ "${FM_BOOTSTRAP_VERBOSE_FACTS:-0}" = 1 ]; then
           echo "BOOTSTRAP_INFO: $FM_SM_LIVE_LINE"
