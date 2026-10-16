@@ -1,5 +1,42 @@
-FM_TEST_BEGIN 2026-10-16T18:11:28Z tests/fm-secondmate-sync.test.sh family=secondmate expected_gate_skip=none
-FM_TEST_BEGIN 2026-10-16T18:11:28Z tests/fm-secondmate-liveness.test.sh family=secondmate expected_gate_skip=none
+FM_TEST_BEGIN 2026-10-16T18:43:47Z tests/fm-omp-harness.test.sh family=pure-contract-unit expected_gate_skip=none
+FM_TEST_BEGIN 2026-10-16T18:43:47Z tests/fm-calm-pi-extension.test.sh family=pure-contract-unit expected_gate_skip=none
+skip: installed @earendil-works/pi-coding-agent package not found
+ok - Pi calm compatibility evidence never rejects a Pi version for being newer than 0.82.0, and still fails closed on a missing or malformed version
+skip: installed @earendil-works/pi-coding-agent package not found
+ok - missing Pi presentation class exports reach the independent adapter degradation path
+skip: installed @earendil-works/pi-coding-agent package not found
+skip: installed @earendil-works/pi-coding-agent package not found
+skip: installed @earendil-works/pi-coding-agent package not found
+skip: installed @earendil-works/pi-coding-agent package not found
+skip: installed @earendil-works/pi-coding-agent package not found
+ok - Pi operational follow-up E2E processes exact user-role notifications once while Calm hides current and adjacent rows, Calm off and absent render them, and restart preserves semantics
+ok - Pi 1.3.0 with Calm on hides and retains queued Firstmate input through Escape, delivers it once, and leaves Calm off stock
+ok - Pi Calm native /skill:ahoy geometry keeps every collapsed thinking and tool block at zero height while preserving expansion, history, restart, and Calm-off rendering
+skip: installed @earendil-works/pi-coding-agent package not found
+ok - the rendered-export-DOM guard renders in one pass, retries a bounded number of Chrome start-up failures, and reports the Chrome binary, Chrome version, Pi version, exit status, and Chrome diagnostic when every attempt fails
+ok - Pi calm native E2E replaces the stock working row with a moving, resize-clamped working ship that freezes and resumes across two working periods in one Pi session, clears on abort, keeps captain turns visible, hides exact operational user rows without changing persistence, restores stock rendering Calm-off, survives restart, and preserves export plus Ctrl+O behavior
+fm-test-run: gate skip: tests/fm-calm-pi-extension.test.sh: installed @earendil-works/pi-coding-agent package not found
+FM_TEST_END 2026-10-16T18:44:16Z tests/fm-calm-pi-extension.test.sh exit=0 duration_ms=28786 gate_skip=true
+ok - fm-harness: omp detects by its anchored name; the marker is a precedence override that needs real omp ancestry
+ok - session lock and tmux liveness: omp is anchored, decoys stay out
+ok - fm-spawn: the omp launch line clears markers, pins posture, and wires the state-resident extension
+ok - fm-spawn: omp model validation is scoped to providers the listing can prove
+ok - fm-spawn: a real omp secondmate launch loads only the busy -e and auto-discovers its primary extensions
+ok - fm-spawn: the config/secondmate-harness model pin is validated against the omp catalog before launch
+ok - omp extension: agent_start busy, willContinue stays busy, plain agent_end idle, turn_end a notification
+ok - control, composer, and supervision-model tables carry omp's verified values
+ok - fm-wake-lib: the omp ownership proof is keyed on its own extensions and gates the hand-off tolerance
+ok - .omp turn-end guard: digest delivery, seatbelt block, one compelled continuation, flagged stop stands down
+ok - .omp turn-end guard: a seeded secondmate root wins over a leaked launcher FM_HOME/FM_ROOT_OVERRIDE
+ok - .omp watch extension: fm_watch_arm_omp arms once, repeats as a no-op, and delivers an actionable close as one follow-up
+ok - .omp watch extension: an opted-in home runs the supervision host and relays every host line (away record)
+ok - .omp watch extension: an opted-in home runs the supervision host and relays every host line (quiet record)
+ok - .omp watch extension: a home without config/supervision-host or with an off file keeps the plain arm
+ok - .omp watch extension: a host-only boundary rides the replacement handoff and replays in the successor session
+ok - .omp watch extension: a host close split across stream chunks reaches main as one whole follow-up
+FM_TEST_END 2026-10-16T18:44:47Z tests/fm-omp-harness.test.sh exit=0 duration_ms=60051 gate_skip=false
+FM_TEST_BEGIN 2026-10-16T18:44:47Z tests/fm-secondmate-sync.test.sh family=secondmate expected_gate_skip=none
+FM_TEST_BEGIN 2026-10-16T18:44:47Z tests/fm-secondmate-liveness.test.sh family=secondmate expected_gate_skip=none
 ok - T1 updated: a behind home fast-forwards to the primary's local HEAD
 ok - T2 current: an already-current home is a no-op and reports no instruction change
 ok - T3 dirty: an uncommitted home is skipped, its edit preserved
@@ -33,7 +70,7 @@ ok - R8 session start converges a remote home on the primary's default-branch co
 ok - R10 a host too old for a parent-targeted sync is reported with the command that fixes it
 ok - R9 a remote launch leaves the home on the parent's commit while an ordinary spawn follows its own checkout
 # all fm-secondmate-sync tests passed
-FM_TEST_END 2026-10-16T18:11:57Z tests/fm-secondmate-sync.test.sh exit=0 duration_ms=29537 gate_skip=false
+FM_TEST_END 2026-10-16T18:45:17Z tests/fm-secondmate-sync.test.sh exit=0 duration_ms=29362 gate_skip=false
 ok - fm_backend_tmux_agent_state: separates live, dead, missing, ambiguous, and unreadable
 ok - fm_backend_tmux_agent_state: rejects malformed targets before probing tmux
 ok - fm_backend_herdr_agent_state: preserves missing/no-agent/live/unknown husk behavior
@@ -64,8 +101,8 @@ ok - sweep: an unreadable or unwritable relaunch ledger refuses to kill or spawn
 ok - poll probe: remote states map to the same contract as local, one call each
 ok - poll probe: unreachable or inconclusive remote reads preserve the route
 # all fm-secondmate-liveness tests passed
-FM_TEST_END 2026-10-16T18:11:59Z tests/fm-secondmate-liveness.test.sh exit=0 duration_ms=31161 gate_skip=false
-FM_TEST_BEGIN 2026-10-16T18:11:59Z tests/fm-sessionstart-nudge.test.sh family=session-bootstrap expected_gate_skip=none
+FM_TEST_END 2026-10-16T18:45:18Z tests/fm-secondmate-liveness.test.sh exit=0 duration_ms=31047 gate_skip=false
+FM_TEST_BEGIN 2026-10-16T18:45:18Z tests/fm-sessionstart-nudge.test.sh family=session-bootstrap expected_gate_skip=none
 ok - fm-sessionstart-nudge: a genuine primary gets one explicitly marked instruction line
 ok - fm-sessionstart-nudge: NO_MISTAKES_GATE is silent
 ok - fm-sessionstart-nudge: .no-mistakes gate common-dir is silent
@@ -96,17 +133,19 @@ ok - Pi distinguishes header-proven restored CLI sessions from named create-if-m
 ok - Pi provider preflight owns one generation-bound startup prerequisite with deterministic fallback, replacement, cancellation, timeout, and truncation
 ok - Pi reload shutdown releases its exit listener and stale startup generation
 ok - Pi retains a bounded digest prefix and loudly marks oversized preflight delivery
-FM_TEST_END 2026-10-16T18:13:00Z tests/fm-sessionstart-nudge.test.sh exit=0 duration_ms=61177 gate_skip=false
-FM_TEST_BEGIN 2026-10-16T18:13:00Z tests/fm-pi-home-leak.test.sh family=unclassified expected_gate_skip=none
+FM_TEST_END 2026-10-16T18:46:19Z tests/fm-sessionstart-nudge.test.sh exit=0 duration_ms=60960 gate_skip=false
+FM_TEST_BEGIN 2026-10-16T18:46:19Z tests/fm-pi-home-leak.test.sh family=unclassified expected_gate_skip=none
 ok - Pi restored second mate resolves its own home despite a leaked launcher FM_HOME/FM_ROOT_OVERRIDE
 # all fm-pi-home-leak tests passed
-FM_TEST_END 2026-10-16T18:13:01Z tests/fm-pi-home-leak.test.sh exit=0 duration_ms=197 gate_skip=false
-FM_TEST_SUMMARY total=4 failed=0 skipped_gate=0 duration_ms=92758
-FM_TEST_SUMMARY_FAMILY family=secondmate count=2 duration_ms=60698 failed=0
-FM_TEST_SUMMARY_FAMILY family=session-bootstrap count=1 duration_ms=61177 failed=0
-FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=197 failed=0
-FM_TEST_SLOWEST rank=1 script=tests/fm-sessionstart-nudge.test.sh duration_ms=61177
-FM_TEST_SLOWEST rank=2 script=tests/fm-secondmate-liveness.test.sh duration_ms=31161
-FM_TEST_SLOWEST rank=3 script=tests/fm-secondmate-sync.test.sh duration_ms=29537
-FM_TEST_SLOWEST rank=4 script=tests/fm-pi-home-leak.test.sh duration_ms=197
-exit=0
+FM_TEST_END 2026-10-16T18:46:20Z tests/fm-pi-home-leak.test.sh exit=0 duration_ms=186 gate_skip=false
+FM_TEST_SUMMARY total=6 failed=0 skipped_gate=1 duration_ms=152534
+FM_TEST_SUMMARY_FAMILY family=pure-contract-unit count=2 duration_ms=88837 failed=0
+FM_TEST_SUMMARY_FAMILY family=secondmate count=2 duration_ms=60409 failed=0
+FM_TEST_SUMMARY_FAMILY family=session-bootstrap count=1 duration_ms=60960 failed=0
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=186 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-sessionstart-nudge.test.sh duration_ms=60960
+FM_TEST_SLOWEST rank=2 script=tests/fm-omp-harness.test.sh duration_ms=60051
+FM_TEST_SLOWEST rank=3 script=tests/fm-secondmate-liveness.test.sh duration_ms=31047
+FM_TEST_SLOWEST rank=4 script=tests/fm-secondmate-sync.test.sh duration_ms=29362
+FM_TEST_SLOWEST rank=5 script=tests/fm-calm-pi-extension.test.sh duration_ms=28786
+FM_TEST_SLOWEST rank=6 script=tests/fm-pi-home-leak.test.sh duration_ms=186

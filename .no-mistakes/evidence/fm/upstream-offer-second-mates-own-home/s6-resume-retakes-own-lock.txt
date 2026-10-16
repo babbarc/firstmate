@@ -1,0 +1,22 @@
+fm-sm1
+before: lock=136131 alive=no complete=136131
+after: lock=151509 complete=151509
+    PID     ELAPSED COMMAND
+ 151509       00:10 claude --continue
+FM_HOME=/tmp/fm-lab.LNloAd
+LAB2 lock still: 136128
+▝▜██████▀  Opus 5.5 · Claude Pro
+ ▝▝   ▝▝   /tmp/fm-sm.7r0fqw/sm1
+⚠ Your login expires in 2 days · run /login to renew
+❯ Reply with just the word OK and nothing else. Do not run any tools.
+● OK
+✻ Crunched for 2s · done 7:39 PM
+❯ Reply with just the word OK2 and nothing else. Do not run any tools.
+● OK2
+✻ Churned for 1s · done 7:40 PM
+                                                                                                                                                                                    ◐ medium · /effort
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  sm1 on  HEAD (28de8dd)  ❯ [Opus 5.5]
+  ⏵⏵ auto mode on (shift+tab to cycle) · ← 1 agent

@@ -1,0 +1,43 @@
+## watcher process in secondmate home
+  94424     753       03:23 tmux -L fm-lab new-session -d -x 200 -y 50 -s primary -c /tmp/fm-sm.7r0fqw/sm1 -e FM_HOME=/tmp/fm-lab.hBqmoS claude
+ 118646   94447       00:44 bash /tmp/fm-sm.7r0fqw/sm1/bin/fm-claude-stop-autoarm.sh
+ 118926  118646       00:44 bash /tmp/fm-sm.7r0fqw/sm1/bin/fm-supervision-host.sh park
+ 119094  118926       00:44 bash /tmp/fm-sm.7r0fqw/sm1/bin/fm-watch-arm.sh
+ 119136  119094       00:44 bash /tmp/fm-sm.7r0fqw/sm1/bin/fm-watch.sh
+fm-watch.sh pid=119136 env:
+FM_ROOT=/tmp/fm-sm.7r0fqw/sm1
+FM_HOME=/tmp/fm-sm.7r0fqw/sm1
+## SM state
+total 64
+drwxr-xr-x  4 yeti yeti  560 19:40:32 .
+drwxr-xr-x 22 yeti yeti  700 19:37:15 ..
+-rw-r--r--  1 yeti yeti  214 19:40:01 .claude-autoarm-epoch
+-rw-------  1 yeti yeti   43 19:40:02 .claude-autoarm-output.wKMT6N
+-rw-------  1 yeti yeti 1016 19:38:48 home-summary.json
+-rw-------  1 yeti yeti  674 19:40:01 .host-mirror.jsonl
+-rw-------  1 yeti yeti   25 19:38:49 .inactive-outcome-reconcile
+-rw-r--r--  1 yeti yeti   25 19:39:58 labtask.meta
+-rw-r--r--  1 yeti yeti    0 19:40:02 .last-check
+-rw-r--r--  1 yeti yeti    0 19:40:01 .last-heartbeat
+-rw-r--r--  1 yeti yeti    0 19:40:32 .last-watcher-beat
+-rw-r--r--  1 yeti yeti    6 19:38:48 .lock
+-rw-------  1 yeti yeti   37 19:38:48 .lock-session
+-rw-r--r--  1 yeti yeti    0 19:40:01 .secondmate-liveness-tick
+-rw-------  1 yeti yeti   78 19:38:49 .session-start-agents-baseline
+-rw-------  1 yeti yeti    6 19:38:49 .session-start-complete
+-rw-------  1 yeti yeti    0 19:38:50 .startup-network.report
+-rw-------  1 yeti yeti  165 19:38:50 .startup-network.status
+-rw-------  1 yeti yeti  203 19:38:50 .startup-network.timings
+-rw-r--r--  1 yeti yeti  311 19:40:01 .supervision-host
+-rw-------  1 yeti yeti   43 19:40:01 .supervision-host-arm.Q9Z4Y5
+-rw-r--r--  1 yeti yeti   59 19:40:01 .supervision-host.log
+drwxr-xr-x  2 yeti yeti   40 19:38:49 terminal-outcomes
+-rw-------  1 yeti yeti   10 19:38:48 .trace-context-effective
+-rw-r--r--  1 yeti yeti    0 19:38:49 .wake-queue
+-rw-------  1 yeti yeti    0 19:40:01 .watch-arm-output.Zj2vva
+lrwxrwxrwx  1 yeti yeti   52 19:40:01 .watch.lock -> /tmp/fm-sm.7r0fqw/sm1/state/.watch.lock.owner.Jwi4yg
+drwx------  2 yeti yeti  120 19:40:01 .watch.lock.owner.Jwi4yg
+## LAB (launcher) state
+total 0
+drwxr-xr-x 2 yeti yeti  40 Oct 16 19:37 .
+drwx------ 7 yeti yeti 160 Oct 16 19:37 ..

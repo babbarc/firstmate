@@ -1,0 +1,58 @@
+## live pi in secondmate home /tmp/fm-sm.7r0fqw/sm1, leaked FM_HOME=FM_ROOT_OVERRIDE=/tmp/fm-lab.LNloAd
+pre-launch SM lock=151509 (dead claude), LAB2 lock=136128
+post: SM lock=164105 complete=164105 LAB2 lock=136128
+    PID     ELAPSED COMMAND
+ 164105       00:51 pi
+FM_ROOT_OVERRIDE=/tmp/fm-lab.LNloAd
+FM_HOME=/tmp/fm-lab.LNloAd
+## pane
+
+ Warning: tmux extended-keys is off. Modified Enter keys may not work. Add `set -g extended-keys on` to ~/.tmux.conf and restart tmux.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+/tmp/fm-sm.7r0fqw/sm1 (detached)
+0.0%/400k (auto)                                                                                                                                                        (deepseek) deepseek-flash • high

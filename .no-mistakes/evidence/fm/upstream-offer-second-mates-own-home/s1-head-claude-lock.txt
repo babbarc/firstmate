@@ -1,0 +1,15 @@
+    PID    PPID     ELAPSED COMMAND
+  94447   94424       01:35 claude
+FM_HOME=/tmp/fm-lab.hBqmoS
+94447
+
+state=done
+pid=105541
+started=1792175929
+finished=1792175930
+rc=0
+locked=1
+phases=probe,sweeps
+generation=1792175929.105276.104182
+lock_pid=94447
+report_published=1

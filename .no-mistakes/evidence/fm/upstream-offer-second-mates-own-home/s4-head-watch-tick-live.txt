@@ -1,0 +1,19 @@
+window=primary:fm-sm1
+kind=secondmate
+harness=claude
+backend=tmux
+home=/tmp/fm-smb.eD6Zb1/sm1
+window=primary:fm-sm2
+kind=secondmate
+harness=claude
+backend=tmux
+home=/tmp/fm-sm.7r0fqw/sm1
+## wakes (primary watcher wake() calls across 2 ticks)
+WAKE: check: secondmate sm1 alive but unsupervised: its own session lock names pid 99999999, which is not a live harness; recover with bin/fm-control.sh sm1 relaunch
+tick rc=0
+tick rc=0
+## primary home durable wake-queue
+1792176162	1	check	secondmate-unsupervised-sm1	check: secondmate sm1 alive but unsupervised: its own session lock names pid 99999999, which is not a live harness; recover with bin/fm-control.sh sm1 relaunch
+## per-mate markers
+.secondmate-unsupervised-sm1
+## tick output

@@ -1,0 +1,9 @@
+## A. seeded secondmate home, leaked launcher FM_HOME=/tmp/fm-lab.LNloAd -> must read its OWN lock (136131)
+lock: held by live harness pid 136131
+## A'. same, leak via FM_ROOT_OVERRIDE=/tmp/fm-lab.LNloAd
+lock: held by live harness pid 136131
+## B. crewmate worktree (no marker) with FM_HOME=/tmp/fm-sm.7r0fqw/sm1 (its parent) -> must keep parent home lock (136131)
+lock: held by live harness pid 136131
+## C. checkout with SYMLINKED marker, FM_HOME=/tmp/fm-lab.LNloAd -> must NOT be treated as a secondmate home; keeps /tmp/fm-lab.LNloAd lock (136128)
+lrwxrwxrwx 1 yeti yeti 41 Oct 16 19:43 /tmp/fm-sm.7r0fqw/sym-marker/.fm-secondmate-home -> /tmp/fm-sm.7r0fqw/sm1/.fm-secondmate-home
+lock: held by live harness pid 136128

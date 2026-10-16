@@ -1,0 +1,21 @@
+## BASE aa9ab04: secondmate home /tmp/fm-smb.eD6Zb1/sm1, leaked FM_HOME=/tmp/fm-lab.LNloAd
+SMB lock:
+cat: /tmp/fm-smb.eD6Zb1/sm1/state/.lock: No such file or directory
+LAB2 (launcher) lock:
+128804
+    PID     ELAPSED COMMAND
+ 128804       00:15 claude
+## SMB state
+## LAB2 state
+home-summary.json
+.inactive-outcome-reconcile
+.lock
+.lock-session
+.session-start-agents-baseline
+.session-start-complete
+.startup-network.report
+.startup-network.status
+.startup-network.timings
+terminal-outcomes
+.trace-context-effective
+.wake-queue
