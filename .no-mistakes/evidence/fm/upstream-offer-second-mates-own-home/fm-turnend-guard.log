@@ -43,4 +43,47 @@ ok - fm-turnend-guard-grok: native false delegates blocking feedback with zero r
 ok - fm-turnend-guard-grok: native true remains bounded and starts no resume process
 ok - fm-turnend-guard-grok: both spellings are typed and camelCase has deterministic precedence
 ok - fm-turnend-guard-grok: malformed, invalidly typed, and missing-prerequisite payloads start neither path
-not ok - healthy no-supervision-needed native stop must allow: expected exit 0, got 2
+ok - fm-turnend-guard-grok: missing jq and no-supervision-needed stops stay silent and bounded
+ok - tracked .claude/settings.json entries: 7 inert under grok, the documented subagent exception still armed, all live under Claude
+ok - .codex/hooks.json: Stop hook uses hook process root when payload cwd is outside
+ok - .codex/hooks.json: Stop hook ignores nested git root guard scripts
+ok - .opencode primary plugin: guard path is anchored to worktree, not directory
+ok - .pi primary extension: no-tool and multi-tool runs each inject exactly one guard follow-up
+ok - .pi primary extension: delivery failure resets the logical-run latch
+ok - fm-turnend-guard --claude: re-blocks a loop-guarded stop while unhealthy and unclaimed (incident regression)
+ok - fm-turnend-guard --claude: X-mode-only homes re-block when auto-arm recovery is absent
+ok - fm-turnend-guard --claude: a live arming epoch advances once and repeated observation is idempotent
+ok - fm-turnend-guard --claude: repeated failed-to-arming races make bounded monotonic progress
+ok - fm-turnend-guard --claude: terminal owner boundary excludes a concurrent start without deadlock
+ok - fm-turnend-guard --claude: fresh rewake epoch prevents a duplicate continuation for the same event
+ok - fm-turnend-guard --claude: an abandoned auto-arm claim no longer allows a blind stop (incident regression)
+ok - fm-turnend-guard --claude: a claim whose pid was reused stops counting as recovery even while its entry reads arming
+ok - fm-turnend-guard --claude: a hung owner frozen at arming with no watcher beat no longer allows a blind stop
+ok - fm-turnend-guard --claude: a live open generation claim owns recovery with no lock held
+ok - fm-turnend-guard --claude: a stuck generation claim no longer allows a blind stop
+ok - fm-turnend-guard --claude: the terminal path clears an abandoned claim instead of stepping aside silently
+ok - fm-turnend-guard --claude: fresh failed epochs preserve and advance monotonic fail-open progression
+ok - fm-turnend-guard --claude: integrated fresh failures reach one bounded fail-open, stop continuation, and reset on recovery
+ok - fm-turnend-guard --claude: an inert auto-arm's frozen epoch reaches one bounded fail-open and resets on recovery
+ok - fm-turnend-guard --claude: a frozen unverified epoch spends the budget yet still blocks
+ok - fm-turnend-guard --claude: reset contention preserves all episode state until retry
+ok - fm-turnend-guard --claude: concurrent auto-arm and guard resets are idempotent and deadlock-free
+ok - fm-turnend-guard --claude: stale rewake epoch does not allow a blind stop
+ok - fm-turnend-guard --claude: budget exhaustion alone cannot permit a blind stop
+ok - fm-turnend-guard --claude: verified fail-open is loud, bounded, attended, and non-repeating
+ok - fm-turnend-guard --claude: fail-open requires both exhausted retries and consumed notice
+ok - fm-turnend-guard --claude: away ownership excludes the Stop-autoarm fail-open
+ok - fm-turnend-guard --claude: positive watcher recovery resets failure episode state
+ok - fm-turnend-guard --claude: bounded claim wait avoids a token-consuming forced continuation
+ok - fm-turnend-guard --claude: secondmate home re-blocks unclaimed and allows auto-arm-claimed stops
+ok - fm-turnend-guard: a live away-mode daemon satisfies supervision with no watcher holding the lock
+ok - fm-turnend-guard: away-mode daemon ownership survives a leftover dead watcher lock
+ok - fm-turnend-guard: away mode with no daemon and no watcher still blocks
+ok - fm-turnend-guard: away mode blocks on a dead away-mode daemon
+ok - fm-turnend-guard: away mode blocks on a pid-reused away-mode daemon lock
+ok - fm-turnend-guard: away-mode daemon ownership never substitutes for a fresh beacon
+ok - fm-turnend-guard: a daemon lock proves nothing while away mode is off
+ok - fm-turnend-guard: away-mode beacon freshness uses the poll-derived grace, not the flat default
+ok - fm-turnend-guard: a dead away-mode daemon still blocks under the poll-derived grace
+ok - fm-turnend-guard: the poll-derived grace is bounded, not unlimited
+ok - fm-turnend-guard: with away mode off, the poll-derived grace never applies

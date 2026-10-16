@@ -1,0 +1,26 @@
+## BASE (before fix) (5f2b81bca96abc6a7702a2187232ca1c0c767493)
+$ FM_HOME=<main> FM_ROOT_OVERRIDE=<main> <secondmate>/bin/fm-inbox.sh note 'reboot test note'
+queued 1792137956-9inVee
+  reboot test note
+  firstmate will pick this up at its next check.
+files in <main>/state:
+  state/inbox/1792137956-9inVee.note
+  state/inbox/.announced/1792137956-9inVee
+  state/.wake-queue
+  state/.wake-queue.seq
+  state/.watcher-down
+files in <secondmate>/state:
+
+## CHANGE (after fix) (b45359e)
+$ FM_HOME=<main> FM_ROOT_OVERRIDE=<main> <secondmate>/bin/fm-inbox.sh note 'reboot test note'
+queued 1792137956-lc9Sfw
+  reboot test note
+  firstmate will pick this up at its next check.
+files in <main>/state:
+files in <secondmate>/state:
+  state/inbox/1792137956-lc9Sfw.note
+  state/inbox/.announced/1792137956-lc9Sfw
+  state/.wake-queue
+  state/.wake-queue.seq
+  state/.watcher-down
+
