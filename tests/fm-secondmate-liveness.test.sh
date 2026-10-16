@@ -59,9 +59,10 @@ SM_PANE_PID=
 cleanup_fake_harness() {
   [ -z "$SM_PANE_PID" ] || kill "$SM_PANE_PID" 2>/dev/null || true
   SM_PANE_PID=
-  [ -n "$SM_FAKE_HARNESS_PID" ] || return 0
-  kill "$SM_FAKE_HARNESS_PID" 2>/dev/null || true
+  [ -z "$SM_FAKE_HARNESS_PID" ] || kill "$SM_FAKE_HARNESS_PID" 2>/dev/null || true
   SM_FAKE_HARNESS_PID=
+  # This trap replaces lib.sh's, so remove the registered fixture roots here.
+  fm_test_cleanup
 }
 trap cleanup_fake_harness EXIT INT TERM
 start_fake_harness
