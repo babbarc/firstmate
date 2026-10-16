@@ -1,0 +1,16 @@
+$ # BASE 5f2b81b: LANG=en_US.UTF-8 bin/fm-test-run.sh --check-coverage
+comm: file 2 is not in sorted order
+comm: input is not in sorted order
+exit=1
+
+$ # BASE 5f2b81b: LC_ALL=C bin/fm-test-run.sh --check-coverage
+FM_TEST_COVERAGE ok total=259 parallel=24 parallel_max_ms=665545 parallel_imbalance_ms=2 parallel_unhinted=0 serial=219 serial_shards=9 serial_unhinted=14 serial_max_ms=1074843 serial_budget_ms=1200000 herdr=16
+exit=0
+
+$ # TARGET f1f123a: LANG=en_US.UTF-8 bin/fm-test-run.sh --check-coverage
+FM_TEST_COVERAGE ok total=259 parallel=24 parallel_max_ms=665545 parallel_imbalance_ms=2 parallel_unhinted=0 serial=219 serial_shards=9 serial_unhinted=14 serial_max_ms=1074843 serial_budget_ms=1200000 herdr=16
+exit=0
+
+$ # TARGET f1f123a: LC_ALL=C bin/fm-test-run.sh --check-coverage
+FM_TEST_COVERAGE ok total=259 parallel=24 parallel_max_ms=665545 parallel_imbalance_ms=2 parallel_unhinted=0 serial=219 serial_shards=9 serial_unhinted=14 serial_max_ms=1074843 serial_budget_ms=1200000 herdr=16
+exit=0
