@@ -1,0 +1,4 @@
+ok - fm-harness: omp detects by its anchored name; the marker is a precedence override that needs real omp ancestry
+ok - session lock and tmux liveness: omp is anchored, decoys stay out
+not ok - omp scout spawn should succeed: warning: herdr presentation parent is absent or ambiguous; using the ordinary flat layout without projection
+error: treehouse get did not enter an isolated worktree within 60s (last seen '/tmp/fm-omp-harness.XShCNV/launch/project': it is the spawning project itself; spawning project '/tmp/fm-omp-harness.XShCNV/launch/project'); inspect window default:w1:p2: expected exit 0, got 1

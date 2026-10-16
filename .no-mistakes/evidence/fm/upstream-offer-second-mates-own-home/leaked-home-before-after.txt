@@ -1,0 +1,28 @@
+=== before (base 1a6714f) ===
+$ cd <secondmate-home>   # carries .fm-secondmate-home marker
+$ FM_HOME=<main-home> bin/fm-inbox.sh note 'restored pane note'
+queued 1792122886-wTkLTt
+  restored pane note
+  firstmate will pick this up at its next check.
+-- inbox records under main home state/:
+./inbox/1792122886-wTkLTt.note
+./inbox/.announced/1792122886-wTkLTt
+-- inbox records under secondmate home state/:
+-- wake queue: main=present  secondmate=absent
+$ FM_HOME=<main-home> bash -c '. bin/fm-wake-lib.sh; echo FM_HOME=$FM_HOME STATE=$STATE'
+FM_HOME=main STATE=main/state
+
+=== after (change 974546e) ===
+$ cd <secondmate-home>   # carries .fm-secondmate-home marker
+$ FM_HOME=<main-home> bin/fm-inbox.sh note 'restored pane note'
+queued 1792122887-sQj7wm
+  restored pane note
+  firstmate will pick this up at its next check.
+-- inbox records under main home state/:
+-- inbox records under secondmate home state/:
+./inbox/1792122887-sQj7wm.note
+./inbox/.announced/1792122887-sQj7wm
+-- wake queue: main=absent  secondmate=present
+$ FM_HOME=<main-home> bash -c '. bin/fm-wake-lib.sh; echo FM_HOME=$FM_HOME STATE=$STATE'
+FM_HOME=sm STATE=sm/state
+
