@@ -1104,6 +1104,26 @@ SH
   pass "run wrapper and home lib: a seeded secondmate home wins over a leaked launcher FM_HOME while an unmarked root is untouched"
 }
 
+test_secondmate_script_stays_on_one_home_under_a_leaked_launcher_home() {
+  local sm="$TMP_ROOT/leak-split-sm" leak="$TMP_ROOT/leak-split-main" out status=0
+  # An agent-invoked script in a restored secondmate home derives its state
+  # paths before it loads the shared wake library. The leaked launcher FM_HOME
+  # must be corrected before that derivation, or the script writes the leaked
+  # home's state while the wake library has already flipped FM_HOME back.
+  mkdir -p "$sm/state" "$leak/state"
+  printf 'bosun\n' > "$sm/.fm-secondmate-home"
+  cp -R "$ROOT/bin" "$sm/bin"
+  out=$(env -u STATE -u FM_STATE_OVERRIDE FM_HOME="$leak" FM_ROOT_OVERRIDE="$leak" \
+    FM_SUPERVISION_ACTOR=main PATH="$RUN_PATH" \
+    "$sm/bin/fm-lease.sh" claim split-task 2>&1) || status=$?
+  expect_code 0 "$status" "lease claim from a secondmate home with a leaked launcher home: $out"
+  assert_present "$sm/state/.lease-split-task" \
+    "the secondmate's own state did not receive the lease it claimed"
+  assert_absent "$leak/state/.lease-split-task" \
+    "a secondmate script wrote its state into the leaked launcher home"
+  pass "secondmate scripts derive every state path from their own home under a leaked launcher FM_HOME"
+}
+
 test_run_creates_missing_state_on_a_fresh_primary() {
   local root="$TMP_ROOT/run-fresh-primary" base="$TMP_ROOT/run-fresh-linked-base"
   local linked="$TMP_ROOT/run-fresh-linked" out status=0
@@ -1182,6 +1202,7 @@ test_run_reads_source_from_the_hook_payload
 test_run_unknown_source_takes_the_helm
 test_run_gate_and_scope_are_silent
 test_run_secondmate_home_survives_a_leaked_launcher_home
+test_secondmate_script_stays_on_one_home_under_a_leaked_launcher_home
 test_run_creates_missing_state_on_a_fresh_primary
 test_run_reports_a_state_dir_it_cannot_create
 test_run_reports_a_failed_session_start_as_digest_text
