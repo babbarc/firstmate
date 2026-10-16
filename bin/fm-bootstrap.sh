@@ -772,11 +772,14 @@ secondmate_liveness_one() {  # <meta> <id>
       # checks. Judge the home's OWN supervision from the outside and report
       # the gap actionably. Recovery stays an explicit control-plane relaunch,
       # because an alive agent is not a recovery-grade dead/missing state. A
-      # home whose own session start is still in progress is not reported: a
-      # relaunch would kill a healthy startup, and the next sweep re-judges it.
+      # home whose own session start is still in progress - including a
+      # freshly restored endpoint that has not reached its own lock yet - is
+      # not reported: a relaunch would kill a healthy startup, and the next
+      # sweep re-judges it.
       home=$(fm_meta_get "$meta" home)
       if [ -z "$(fm_meta_get "$meta" remote_host)" ] && [ -n "$home" ] && [ -d "$home/state" ]; then
-        fm_supervision_home_verdict "$home"
+        fm_supervision_home_verdict "$home" "" \
+          "$(fm_backend_endpoint_pid "$FM_SM_LIVE_BACKEND" "$FM_SM_LIVE_TARGET")"
         if [ "$FM_SUP_HOME_OK" = no ]; then
           echo "SECONDMATE_LIVENESS: secondmate $id: alive but unsupervised: $FM_SUP_HOME_REASON; recover with bin/fm-control.sh $id relaunch"
         elif [ "${FM_BOOTSTRAP_VERBOSE_FACTS:-0}" = 1 ]; then
