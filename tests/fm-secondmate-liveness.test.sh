@@ -851,6 +851,25 @@ test_watch_tick_leaves_midturn_autoarm_mate_with_stale_beacon_alone() {
   pass "watch tick: a stale beacon explained by a live auto-arm rewake is not reported; an unexplained one is"
 }
 
+test_watch_tick_leaves_handling_codex_mate_with_fresh_beacon_alone() {
+  local w wakes queue
+  w=$(new_world tick-codex-handling)
+  add_sm_home "$w" sm1 firstmate:fm-sm1 codex
+  wakes="$w/wakes.log"; : > "$wakes"; : > "$w/calls.log"
+  queue="$w/home/state/.wake-queue"
+  # A healthy Codex mate between checkpoints: in-flight work needs supervision,
+  # its watcher exited on a wake moments ago (fresh beacon, no live watcher),
+  # and it is handling that wake.
+  : > "$w/sm1/state/child.meta"
+  touch "$w/sm1/state/.last-watcher-beat"
+
+  run_watch_liveness_tick "$w" "$wakes" || fail "the liveness tick failed for a handling codex mate"
+  [ ! -s "$wakes" ] || fail "a codex mate handling a wake with a fresh beacon must not be reported: $(cat "$wakes")"
+  ! grep -q 'secondmate-unsupervised-sm1' "$queue" 2>/dev/null \
+    || fail "a codex mate handling a wake queued an unsupervised row: $(cat "$queue")"
+  pass "watch tick: a persistent-model mate with a fresh beacon and no live watcher is not reported"
+}
+
 test_sweep_reports_alive_but_unsupervised_missing_completion() {
   local w fb tmuxfb log out
   w=$(new_world sweep-no-completion)
@@ -1044,6 +1063,7 @@ test_sweep_converges_no_retouch_once_alive
 test_sweep_reports_alive_but_unsupervised_stale_lock
 test_watch_tick_reports_restored_dead_lock_once_after_startup_window
 test_watch_tick_leaves_midturn_autoarm_mate_with_stale_beacon_alone
+test_watch_tick_leaves_handling_codex_mate_with_fresh_beacon_alone
 test_sweep_reports_alive_but_unsupervised_missing_completion
 test_sweep_stays_quiet_while_secondmate_startup_is_in_progress
 test_sweep_reports_alive_but_unsupervised_stale_beacon
