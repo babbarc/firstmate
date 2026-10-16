@@ -1110,6 +1110,24 @@ test_portable_parallel_lanes_stay_duration_balanced() {
   pass "portable parallel lanes are fully hinted and packed within 5% of each other"
 }
 
+# The guard sorts its sets under LC_ALL=C, so its set comparisons must collate
+# the same way: under a locale such as en_US.UTF-8, comm saw C-sorted input as
+# unsorted and the guard failed on a correct partition.
+test_coverage_guard_is_locale_independent() {
+  local loc="" candidate out rc
+  for candidate in en_US.UTF-8 en_US.utf8; do
+    if locale -a 2>/dev/null | grep -qix "$candidate"; then loc=$candidate; break; fi
+  done
+  if [ -z "$loc" ]; then
+    pass "coverage guard locale independence skipped: no en_US UTF-8 locale installed"
+    return
+  fi
+  out=$(LC_ALL="$loc" "$RUNNER" --check-coverage 2>&1) && rc=0 || rc=$?
+  [ "$rc" = "0" ] || fail "coverage guard must pass under LC_ALL=$loc, got rc=$rc: $out"
+  assert_contains "$out" "FM_TEST_COVERAGE ok" "coverage guard success marker under LC_ALL=$loc"
+  pass "coverage guard passes under a non-C collating locale"
+}
+
 test_portable_serial_shards_partition_the_serial_lane() {
   local lanes count serial shard listed union dups shard_lane total cap
   lanes=$("$RUNNER" --list-lanes)
@@ -1852,6 +1870,7 @@ test_list_scheduled_proven_isolated_uses_serial_weights
 test_list_scheduled_non_lane_selections_use_serial_weights
 test_portable_shard_union_and_coverage_guard
 test_portable_parallel_lanes_stay_duration_balanced
+test_coverage_guard_is_locale_independent
 test_portable_serial_shards_partition_the_serial_lane
 test_portable_serial_hint_coverage_is_reported_and_bounded
 test_portable_serial_packing_budget_boundary
