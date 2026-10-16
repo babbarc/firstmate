@@ -55,7 +55,10 @@ start_fake_harness() {
   SM_FAKE_HARNESS_PID=$!
   sleep 0.2
 }
+SM_PANE_PID=
 cleanup_fake_harness() {
+  [ -z "$SM_PANE_PID" ] || kill "$SM_PANE_PID" 2>/dev/null || true
+  SM_PANE_PID=
   [ -n "$SM_FAKE_HARNESS_PID" ] || return 0
   kill "$SM_FAKE_HARNESS_PID" 2>/dev/null || true
   SM_FAKE_HARNESS_PID=
@@ -720,50 +723,66 @@ test_sweep_reports_alive_but_unsupervised_stale_lock() {
   pass "sweep: an alive endpoint whose own session lock is stale is reported, not silently accepted"
 }
 
-test_sweep_stays_quiet_while_restored_endpoint_has_not_taken_its_lock() {
-  local w fb tmuxfb log out pane_pid
-  w=$(new_world sweep-restored-before-lock)
-  add_sm_home "$w" sm1 firstmate:fm-sm1 pi
-  # The post-reboot shape before the restored agent's own session start
-  # reaches its lock: the endpoint was just recreated, while the lock still
-  # names the dead pre-reboot pid.
-  printf '99999999\n' > "$w/sm1/state/.lock"
-  sleep 600 &
-  pane_pid=$!
-  fb=$(make_toolchain "$w"); tmuxfb=$(make_liveness_tmux "$w")
-  log="$w/calls.log"; : > "$log"
-
-  out=$(run_bootstrap "$tmuxfb:$fb" "$w/home" claude "$log" FM_TEST_PANE_PID="$pane_pid")
-  kill "$pane_pid" 2>/dev/null || true
-
-  assert_not_contains "$out" "SECONDMATE_LIVENESS: secondmate sm1" \
-    "a freshly restored endpoint whose session start has not taken its lock yet must not be told to relaunch"
-  [ ! -s "$log" ] || fail "a restored startup must not be killed or respawned: $(cat "$log")"
-  pass "sweep: a dead lock on an endpoint younger than the session-start bound is left to finish starting"
+# run_watch_liveness_tick <w> <wake-log> [NAME=VALUE...]: one
+# bin/fm-watch.sh secondmate_liveness_tick against <w>'s home with its cadence
+# marker cleared, recording each wake reason in <wake-log>.
+run_watch_liveness_tick() {
+  local w=$1 wakes=$2 tmuxfb
+  shift 2
+  tmuxfb=$(make_liveness_tmux "$w")
+  # shellcheck disable=SC2016 # The script body expands in the child bash.
+  env PATH="$tmuxfb:$BASE_PATH" TMUX='' FM_BACKEND=tmux FM_HOME="$w/home" \
+    FM_STATE_OVERRIDE="$w/home/state" FM_ROOT_OVERRIDE="$ROOT" \
+    FM_TEST_PANE_CMD=claude FM_TMUX_CALL_LOG="$w/calls.log" FM_SECONDMATE_LIVENESS_SECS=1 \
+    FM_T_ROOT="$ROOT" FM_T_WAKES="$wakes" "$@" bash -c '
+      set --
+      # shellcheck source=/dev/null
+      . "$FM_T_ROOT/bin/fm-watch.sh"
+      wake() { printf "%s\n" "$1" >> "$FM_T_WAKES"; }
+      rm -f "$STATE/.secondmate-liveness-tick"
+      secondmate_liveness_tick
+    '
 }
 
-test_sweep_reports_dead_lock_once_restored_endpoint_outlives_startup_bound() {
-  local w fb tmuxfb log out pane_pid i=0
-  w=$(new_world sweep-restored-past-bound)
+test_watch_tick_reports_restored_dead_lock_once_after_startup_window() {
+  local w wakes pane_pid i=0 rows queue
+  w=$(new_world tick-restored-dead-lock)
   add_sm_home "$w" sm1 firstmate:fm-sm1 pi
+  wakes="$w/wakes.log"; : > "$wakes"; : > "$w/calls.log"
+  queue="$w/home/state/.wake-queue"
+  # The post-reboot shape: the endpoint was just recreated while the home's
+  # lock still names the dead pre-reboot pid.
   printf '99999999\n' > "$w/sm1/state/.lock"
-  sleep 600 &
+  sleep 600 >/dev/null 2>&1 &
   pane_pid=$!
+  SM_PANE_PID=$pane_pid
+
+  run_watch_liveness_tick "$w" "$wakes" FM_TEST_PANE_PID="$pane_pid" \
+    || fail "the liveness tick failed inside the startup window"
+  [ ! -s "$wakes" ] || fail "a restored endpoint inside the startup window must not be reported: $(cat "$wakes")"
+  ! grep -q 'secondmate-unsupervised-sm1' "$queue" 2>/dev/null \
+    || fail "a restored endpoint inside the startup window queued a row: $(cat "$queue")"
+
+  # Past the window (a 1s bound, with the endpoint at least 1s old) the same
+  # home, still holding a dead lock, is a leaked restore.
   while [ "$(LC_ALL=C ps -o etime= -p "$pane_pid" | tr -d '[:space:]')" = 00:00 ] && [ "$i" -lt 50 ]; do
     sleep 0.1
     i=$((i + 1))
   done
-  fb=$(make_toolchain "$w"); tmuxfb=$(make_liveness_tmux "$w")
-  log="$w/calls.log"; : > "$log"
-
-  out=$(run_bootstrap "$tmuxfb:$fb" "$w/home" claude "$log" \
-    FM_TEST_PANE_PID="$pane_pid" FM_SESSION_START_TIMEOUT=1)
+  run_watch_liveness_tick "$w" "$wakes" FM_TEST_PANE_PID="$pane_pid" FM_SESSION_START_TIMEOUT=1 \
+    || fail "the liveness tick failed past the startup window"
+  run_watch_liveness_tick "$w" "$wakes" FM_TEST_PANE_PID="$pane_pid" FM_SESSION_START_TIMEOUT=1 \
+    || fail "the repeat liveness tick failed"
   kill "$pane_pid" 2>/dev/null || true
+  SM_PANE_PID=
 
-  assert_contains "$out" "SECONDMATE_LIVENESS: secondmate sm1: alive but unsupervised: its own session lock names pid 99999999, which is not a live harness; recover with bin/fm-control.sh sm1 relaunch" \
-    "an endpoint older than the session-start bound whose lock is still dead must be reported as unsupervised"
-  [ ! -s "$log" ] || fail "an alive-but-unsupervised secondmate must not be killed or respawned: $(cat "$log")"
-  pass "sweep: a dead lock on an endpoint older than the session-start bound is reported as unsupervised"
+  rows=$(cat "$queue" 2>/dev/null | grep -c 'secondmate-unsupervised-sm1' || true)
+  [ "$rows" = 1 ] || fail "a leaked restore past the window must queue exactly one check row, got $rows: $(cat "$queue" 2>/dev/null)"
+  assert_contains "$(cat "$queue")" "check: secondmate sm1 alive but unsupervised: its own session lock names pid 99999999, which is not a live harness; recover with bin/fm-control.sh sm1 relaunch" \
+    "the queued row must name the unsupervised cause and the recovery"
+  [ "$(wc -l < "$wakes" | tr -d ' ')" -eq 1 ] || fail "the leak must wake exactly once across ticks: $(cat "$wakes")"
+  [ ! -s "$w/calls.log" ] || fail "an alive-but-unsupervised secondmate must not be killed or respawned: $(cat "$w/calls.log")"
+  pass "watch tick: a dead lock is left alone inside the startup window and reported exactly once after it"
 }
 
 test_sweep_reports_alive_but_unsupervised_missing_completion() {
@@ -956,8 +975,7 @@ test_sweep_reports_missing_endpoint_relaunch_failure
 test_sweep_never_acts_on_unverified_harness_dead_reading
 test_sweep_converges_no_retouch_once_alive
 test_sweep_reports_alive_but_unsupervised_stale_lock
-test_sweep_stays_quiet_while_restored_endpoint_has_not_taken_its_lock
-test_sweep_reports_dead_lock_once_restored_endpoint_outlives_startup_bound
+test_watch_tick_reports_restored_dead_lock_once_after_startup_window
 test_sweep_reports_alive_but_unsupervised_missing_completion
 test_sweep_stays_quiet_while_secondmate_startup_is_in_progress
 test_sweep_reports_alive_but_unsupervised_stale_beacon
