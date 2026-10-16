@@ -1121,6 +1121,14 @@ test_secondmate_script_stays_on_one_home_under_a_leaked_launcher_home() {
     "the secondmate's own state did not receive the lease it claimed"
   assert_absent "$leak/state/.lease-split-task" \
     "a secondmate script wrote its state into the leaked launcher home"
+
+  status=0
+  out=$(env -u STATE -u FM_STATE_OVERRIDE FM_HOME="$leak" FM_ROOT_OVERRIDE="$leak" \
+    PATH="$RUN_PATH" "$sm/bin/fm-inbox.sh" note "split-home note" 2>&1) || status=$?
+  expect_code 0 "$status" "inbox note from a secondmate home with a leaked launcher home: $out"
+  assert_present "$sm/state/inbox" "the secondmate's own inbox did not receive its note"
+  assert_absent "$leak/state/inbox" \
+    "a secondmate inbox note landed in the leaked launcher home"
   pass "secondmate scripts derive every state path from their own home under a leaked launcher FM_HOME"
 }
 
