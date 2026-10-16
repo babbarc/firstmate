@@ -1095,13 +1095,29 @@ SH
   mkdir -p "$fm_unmarked/bin" "$fm_unmarked/state" "$fm_unmarked/data" "$fm_unmarked/config"
   : > "$fm_unmarked/AGENTS.md"
   cp "$ROOT/bin/fm-home-lib.sh" "$fm_unmarked/bin/"
-  ( # shellcheck source=/dev/null
-    . "$ROOT/bin/fm-home-lib.sh"
-    fm_home_correct "$fm_unmarked" "$leak" "$leak"
-    [ "$FM_HOME_RESOLVED" = "$leak" ] || exit 1
-    [ "$FM_ROOT_RESOLVED" = "$leak" ] || exit 1
-  ) || fail "an unmarked root lost its ordinary inherited-override precedence"
-  pass "run wrapper and home lib: a seeded secondmate home wins over a leaked launcher FM_HOME while an unmarked root is untouched"
+  # shellcheck disable=SC2016
+  out=$(env FM_HOME="$leak" FM_ROOT_OVERRIDE="$leak" FM_ROOT="$leak" bash -c \
+    '. "$1/bin/fm-home-lib.sh"; printf "%s|%s|%s\n" "$FM_HOME" "$FM_ROOT_OVERRIDE" "$FM_ROOT"' \
+    _ "$fm_unmarked")
+  [ "$out" = "$leak|$leak|$leak" ] \
+    || fail "an unmarked root lost its ordinary inherited-override precedence, got: $out"
+
+  # Loading the wake library in a seeded home must not export an FM_ROOT the
+  # launcher never exported, so a child it spawns derives its own root.
+  cp "$ROOT/bin/fm-wake-lib.sh" "$ROOT/bin/fm-path-lib.sh" "$ROOT/bin/fm-classify-lib.sh" \
+    "$ROOT/bin/fm-timeout-lib.sh" "$root/bin/"
+  cat > "$root/bin/child-env.sh" <<'SH'
+#!/usr/bin/env bash
+printf '%s|%s\n' "${FM_HOME-unset}" "${FM_ROOT-unset}"
+SH
+  chmod +x "$root/bin/child-env.sh"
+  # shellcheck disable=SC2016
+  out=$(env -u FM_ROOT FM_HOME="$leak" FM_ROOT_OVERRIDE="$leak" bash -c \
+    '. "$1/bin/fm-wake-lib.sh"; printf "%s|%s|" "$FM_HOME" "$FM_ROOT"; "$1/bin/child-env.sh"' \
+    _ "$root")
+  [ "$out" = "$root|$root|$root|unset" ] \
+    || fail "the wake library leaked the launcher home or a newly exported FM_ROOT into a child, got: $out"
+  pass "run wrapper and home lib: a seeded secondmate home wins over a leaked launcher FM_HOME, an unmarked root is untouched, and no new FM_ROOT export reaches a child"
 }
 
 test_secondmate_script_stays_on_one_home_under_a_leaked_launcher_home() {

@@ -6,10 +6,8 @@ FM_WAKE_LIB_DIR="$(d=${BASH_SOURCE[0]%/*}; [ "$d" != "${BASH_SOURCE[0]}" ] || d=
 FM_WAKE_DEFAULT_ROOT="$(cd "$FM_WAKE_LIB_DIR/.." && pwd)"
 # shellcheck source=bin/fm-home-lib.sh
 . "$FM_WAKE_LIB_DIR/fm-home-lib.sh"
-fm_home_correct "$FM_WAKE_DEFAULT_ROOT" "${FM_HOME:-${FM_ROOT_OVERRIDE:-${FM_ROOT:-}}}" "${FM_ROOT_OVERRIDE:-${FM_ROOT:-}}"
-FM_HOME=$FM_HOME_RESOLVED
-FM_ROOT=$FM_ROOT_RESOLVED
-export FM_HOME FM_ROOT
+FM_ROOT="${FM_ROOT_OVERRIDE:-${FM_ROOT:-$FM_WAKE_DEFAULT_ROOT}}"
+FM_HOME="${FM_HOME:-${FM_ROOT_OVERRIDE:-$FM_ROOT}}"
 STATE="${FM_STATE_OVERRIDE:-${STATE:-$FM_HOME/state}}"
 FM_WAKE_QUEUE="${FM_WAKE_QUEUE:-$STATE/.wake-queue}"
 FM_WAKE_QUEUE_LOCK="${FM_WAKE_QUEUE_LOCK:-$STATE/.wake-queue.lock}"
