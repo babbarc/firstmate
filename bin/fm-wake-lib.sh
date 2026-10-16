@@ -217,8 +217,9 @@ fm_watcher_healthy() {
 # mid-turn, where the auto-arm model runs no watcher at all, so it wants a
 # different, model-aware question:
 
-# fm_supervision_model
-# Print the supervision model of this home's PRIMARY harness:
+# fm_supervision_model [harness]
+# Print the supervision model of this home's PRIMARY harness, or of <harness>
+# when given (a caller judging another home whose harness it already knows):
 #   autoarm     Claude's Stop-hook auto-arm and Cursor's stop-hook park: the
 #               watcher is armed at each turn end and exits on its wake, so it
 #               runs only BETWEEN turns. Mid-turn a fresh beacon with no live
@@ -237,11 +238,13 @@ fm_watcher_healthy() {
 # the harness). Otherwise bin/fm-harness.sh is the single detection owner, so this
 # stays consistent with the harness-specific repair line the guards already emit.
 fm_supervision_model() {
-  local harness
-  case "${FM_SUPERVISION_MODEL:-}" in
-    autoarm|extension|persistent) printf '%s\n' "$FM_SUPERVISION_MODEL"; return 0 ;;
-  esac
-  harness=$("$FM_WAKE_LIB_DIR/fm-harness.sh" 2>/dev/null || printf unknown)
+  local harness=${1:-}
+  if [ -z "$harness" ]; then
+    case "${FM_SUPERVISION_MODEL:-}" in
+      autoarm|extension|persistent) printf '%s\n' "$FM_SUPERVISION_MODEL"; return 0 ;;
+    esac
+    harness=$("$FM_WAKE_LIB_DIR/fm-harness.sh" 2>/dev/null || printf unknown)
+  fi
   case "$harness" in
     claude|cursor) printf 'autoarm\n' ;;
     pi|pi-signed|omp) printf 'extension\n' ;;

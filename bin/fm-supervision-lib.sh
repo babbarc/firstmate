@@ -137,7 +137,7 @@ fm_sup_pid_age() {
     END { exit(ok ? 0 : 1) }'
 }
 
-# fm_supervision_home_verdict <home> [grace-seconds] [endpoint-pid]
+# fm_supervision_home_verdict <home> [grace-seconds] [endpoint-pid] [harness]
 # The cross-home supervision check a primary can run against a secondmate home
 # it does not itself occupy: a home is supervised only when its session lock
 # names a live harness process, its startup completion record names that same
@@ -152,11 +152,16 @@ fm_sup_pid_age() {
 # pid while the endpoint-pid process (the secondmate's backend endpoint, see
 # fm_backend_endpoint_pid) is younger than that same bound - a freshly restored
 # agent that has not reached its own lock yet. Past that bound the same shapes
-# are failures. Always returns 0; the caller reads the vars. An unreadable or
+# are failures. The watcher leg is fm_watcher_supervision_verdict (from
+# bin/fm-wake-lib.sh, which the caller has loaded) on that home's own state and
+# root under the supervision model of <harness>, its recorded harness, so a
+# Claude mate mid-turn under auto-arm is judged exactly as its own pull guard
+# judges it. Always returns 0; the caller reads the vars. An unreadable or
 # absent home is a failure with its own reason, never treated as healthy.
 # shellcheck disable=SC2034  # FM_SUP_HOME_OK/FM_SUP_HOME_REASON are read by callers after the call.
 fm_supervision_home_verdict() {
-  local home=$1 grace=${2:-${FM_GUARD_GRACE:-300}} endpoint_pid=${3:-} lock_pid complete_pid
+  local home=$1 grace=${2:-${FM_GUARD_GRACE:-300}} endpoint_pid=${3:-} harness=${4:-unknown}
+  local lock_pid complete_pid model
   local start_bound=${FM_SESSION_START_TIMEOUT:-120} lock_mtime endpoint_age=''
   FM_SUP_HOME_OK=no
   FM_SUP_HOME_REASON=""
@@ -210,9 +215,18 @@ fm_supervision_home_verdict() {
   # A secondmate with no in-flight work, relay poll, registered source, or
   # registered custom check legitimately holds its lock with no fresh beacon.
   fm_supervision_status "$home/state" "$grace"
-  if [ "$FM_SUP_NEEDED" = true ] && [ "$FM_SUP_WATCHER_FRESH" = false ]; then
-    FM_SUP_HOME_REASON="its watcher beacon is ${FM_SUP_BEACON_DESC} while supervision is required"
-    return 0
+  if [ "$FM_SUP_NEEDED" = true ]; then
+    model=$(fm_supervision_model "$harness")
+    FM_SUPERVISION_MODEL=$model fm_watcher_supervision_verdict \
+      "$home/state" "$home/bin/fm-watch.sh" "$grace" "$home" "$home"
+    if [ "$FM_WATCHER_VERDICT_OK" != true ]; then
+      if [ "$FM_WATCHER_VERDICT_REASON" = no-watcher ]; then
+        FM_SUP_HOME_REASON="its watcher is not running while supervision is required"
+      else
+        FM_SUP_HOME_REASON="its watcher beacon is ${FM_SUP_BEACON_DESC} while supervision is required"
+      fi
+      return 0
+    fi
   fi
   FM_SUP_HOME_OK=yes
   return 0

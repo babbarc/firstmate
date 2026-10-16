@@ -779,7 +779,8 @@ secondmate_liveness_one() {  # <meta> <id>
       home=$(fm_meta_get "$meta" home)
       if [ -z "$(fm_meta_get "$meta" remote_host)" ] && [ -n "$home" ] && [ -d "$home/state" ]; then
         fm_supervision_home_verdict "$home" "" \
-          "$(fm_backend_endpoint_pid "$FM_SM_LIVE_BACKEND" "$FM_SM_LIVE_TARGET")"
+          "$(fm_backend_endpoint_pid "$FM_SM_LIVE_BACKEND" "$FM_SM_LIVE_TARGET")" \
+          "$(fm_meta_get "$meta" harness)"
         if [ "$FM_SUP_HOME_OK" = no ]; then
           echo "SECONDMATE_LIVENESS: secondmate $id: alive but unsupervised: $FM_SUP_HOME_REASON; recover with bin/fm-control.sh $id relaunch"
         elif [ "${FM_BOOTSTRAP_VERBOSE_FACTS:-0}" = 1 ]; then
