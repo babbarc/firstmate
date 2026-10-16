@@ -70,7 +70,7 @@
 #                   script paths, which use the bounded automatic scheduler.
 #   --per-script-timeout-secs N
 #                   terminate a script that runs longer than N seconds and
-#                   record it as exit 124. Every mode applies 1500s when the
+#                   record it as exit 124. Every mode applies 3600s when the
 #                   flag is absent (see DEFAULT_PER_SCRIPT_TIMEOUT_SECS for why);
 #                   0 disables it. Exceeding it is a bounded failure, not proof
 #                   of a hang. A tripped bound also terminates every process
@@ -224,17 +224,21 @@ PER_SCRIPT_TIMEOUT_SECS=default
 RUN_TIMEOUT_SECS=default
 # Per-script bound applied in every mode when --per-script-timeout-secs is
 # absent, derived from measured healthy runtimes with margin rather than
-# picked: the slowest measured script is tests/fm-watch-triage.test.sh at about
-# 1075s under CI load (the hint table below records that loaded figure). 1500s
-# keeps every measured script under the bound with roughly 1.4x headroom over
-# the slowest loaded measurement, and it stays under the 30-minute normal CI
-# tier so a wedged script fails here, with its output, before the job cap
-# cancels the lane. It is a guard, not a speed control: a HUNG script becomes a
-# bounded failure instead of an unbounded suite, which is the shape that
-# silently outruns a caller's invocation budget. A prompt-submitting live guard
-# run against a slow vendor is the case most likely to need a larger explicit
-# value.
-DEFAULT_PER_SCRIPT_TIMEOUT_SECS=1500
+# picked. The slowest measured script on CI is tests/fm-supervision-host.test.sh:
+# it stayed under 1236s across eleven green main runs, but on one slow shared
+# runner it tripped the former 1500s bound at 1501188 ms while still running.
+# 3600s leaves roughly 2.9x headroom over the slowest healthy measurement and
+# 2.4x over that slow-runner trip point, so a genuinely slow suite finishes
+# while a hung one still becomes a bounded failure. The whole-run bound below
+# accommodates six such scripts. The 30-minute normal-tier CI job cap remains
+# the outer backstop for a shard that never finishes; the per-script bound ends
+# a single hung fixture with its process sweep whenever the per-script bound,
+# not that cap, is the binding limit. It is a guard, not a speed control: a HUNG
+# script becomes a bounded failure instead of an unbounded suite, which is the
+# shape that silently outruns a caller's invocation budget. A prompt-submitting
+# live guard run against a slow vendor is the case most likely to need a larger
+# explicit value.
+DEFAULT_PER_SCRIPT_TIMEOUT_SECS=3600
 # Whole-invocation bound applied when --run-timeout-secs is absent. The serial
 # and parallel hint tables below sum to about 167 minutes, and the scripts they
 # leave unhinted add about 20 more at the default weight, so a complete serial
