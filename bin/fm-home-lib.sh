@@ -23,19 +23,6 @@
 # PROJECTS - lands on the same home. Every entry point that loads
 # bin/fm-wake-lib.sh therefore sources this file BEFORE deriving any of those
 # paths; correcting only inside wake-lib would split a caller across two homes.
-#
-# Callers that also want the resolved values explicitly use, right after
-# SCRIPT_DIR is known and before any FM_HOME/STATE-derived path is computed:
-#
-#   FM_OWN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-#   # shellcheck source=bin/fm-home-lib.sh
-#   . "$SCRIPT_DIR/fm-home-lib.sh"
-#   fm_home_correct "$FM_OWN_ROOT" "${FM_HOME:-${FM_ROOT_OVERRIDE:-}}" "${FM_ROOT_OVERRIDE:-}"
-#   FM_HOME=$FM_HOME_RESOLVED
-#   FM_ROOT=$FM_ROOT_RESOLVED
-#
-# fm_home_correct always sets FM_HOME_RESOLVED and FM_ROOT_RESOLVED; callers
-# decide whether to export them.
 
 fm_home_is_secondmate_root() {  # <root>
   local root=$1 marker
@@ -43,21 +30,6 @@ fm_home_is_secondmate_root() {  # <root>
   marker="$root/.fm-secondmate-home"
   [ -L "$marker" ] && return 1
   [ -f "$marker" ] || return 1
-  return 0
-}
-
-# shellcheck disable=SC2034  # FM_HOME_RESOLVED/FM_ROOT_RESOLVED are read by callers after sourcing.
-fm_home_correct() {  # <own-root> <requested-home> <requested-root>
-  local own=$1 home=${2:-} root=${3:-}
-  [ -n "$home" ] || home=$own
-  [ -n "$root" ] || root=$own
-  if fm_home_is_secondmate_root "$own"; then
-    FM_HOME_RESOLVED=$own
-    FM_ROOT_RESOLVED=$own
-  else
-    FM_HOME_RESOLVED=$home
-    FM_ROOT_RESOLVED=$root
-  fi
   return 0
 }
 
