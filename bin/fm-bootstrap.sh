@@ -774,8 +774,8 @@ secondmate_liveness_one() {  # <meta> <id>
       # because an alive agent is not a recovery-grade dead/missing state. A
       # home whose own session start is still in progress - including a
       # freshly restored endpoint that has not reached its own lock yet - is
-      # not reported: a relaunch would kill a healthy startup, and the next
-      # sweep re-judges it.
+      # not reported: a relaunch would kill a healthy startup, and the
+      # watcher's liveness tick re-judges it once that window has passed.
       home=$(fm_meta_get "$meta" home)
       if [ -z "$(fm_meta_get "$meta" remote_host)" ] && [ -n "$home" ] && [ -d "$home/state" ]; then
         fm_supervision_home_verdict "$home" "" \
