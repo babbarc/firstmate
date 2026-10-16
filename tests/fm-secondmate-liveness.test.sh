@@ -786,6 +786,38 @@ test_watch_tick_reports_restored_dead_lock_once_after_startup_window() {
   pass "watch tick: a dead lock is left alone inside the startup window and reported exactly once after it"
 }
 
+test_watch_tick_leaves_relaunched_agent_in_old_pane_alone() {
+  local w wakes queue pane_pid agent_pid='' i=0
+  w=$(new_world tick-relaunch-old-pane)
+  add_sm_home "$w" sm1 firstmate:fm-sm1 pi
+  wakes="$w/wakes.log"; : > "$wakes"; : > "$w/calls.log"
+  queue="$w/home/state/.wake-queue"
+  # The relaunch shape: the old agent stopped (its lock names a dead pid) and a
+  # new agent was typed into the same long-lived pane shell, which is older
+  # than the startup bound while the agent itself has only just started.
+  printf '99999999\n' > "$w/sm1/state/.lock"
+  cp "$(command -v bash)" "$w/claude"
+  bash -c 'sleep 3.2; "$1" -c "sleep 30; :" & wait' _ "$w/claude" >/dev/null 2>&1 &
+  pane_pid=$!
+  SM_PANE_PID=$pane_pid
+  while [ -z "$agent_pid" ] && [ "$i" -lt 100 ]; do
+    agent_pid=$(LC_ALL=C ps -axo pid=,ppid=,comm= | awk -v p="$pane_pid" '$2 == p && $3 ~ /claude$/ { print $1 }')
+    [ -n "$agent_pid" ] || sleep 0.1
+    i=$((i + 1))
+  done
+  [ -n "$agent_pid" ] || fail "the relaunched agent never started under the pane"
+
+  run_watch_liveness_tick "$w" "$wakes" FM_TEST_PANE_PID="$pane_pid" FM_SESSION_START_TIMEOUT=3 \
+    || fail "the liveness tick failed during a relaunch into an old pane"
+  kill "$agent_pid" "$pane_pid" 2>/dev/null || true
+  SM_PANE_PID=
+
+  [ ! -s "$wakes" ] || fail "a just-relaunched agent in an old pane must not be reported: $(cat "$wakes")"
+  ! grep -q 'secondmate-unsupervised-sm1' "$queue" 2>/dev/null \
+    || fail "a just-relaunched agent in an old pane queued a row: $(cat "$queue")"
+  pass "watch tick: a dead lock under a just-relaunched agent in an old pane is left alone"
+}
+
 test_watch_tick_leaves_midturn_autoarm_mate_with_stale_beacon_alone() {
   local w wakes queue recovery=tick-autoarm-generation
   w=$(new_world tick-autoarm-midturn)
@@ -1026,6 +1058,7 @@ test_sweep_never_acts_on_unverified_harness_dead_reading
 test_sweep_converges_no_retouch_once_alive
 test_sweep_reports_alive_but_unsupervised_stale_lock
 test_watch_tick_reports_restored_dead_lock_once_after_startup_window
+test_watch_tick_leaves_relaunched_agent_in_old_pane_alone
 test_watch_tick_leaves_midturn_autoarm_mate_with_stale_beacon_alone
 test_watch_tick_leaves_handling_codex_mate_with_fresh_beacon_alone
 test_sweep_reports_alive_but_unsupervised_missing_completion

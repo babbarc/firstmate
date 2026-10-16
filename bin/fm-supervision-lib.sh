@@ -117,24 +117,70 @@ fm_supervision_unhealthy() {
 
 FM_SUP_LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# fm_sup_pid_age <pid>: seconds since <pid> started, from the portable
-# `ps -o etime=` ([[dd-]hh:]mm:ss). Fails when the pid is gone or unreadable.
-fm_sup_pid_age() {
-  local etime
-  etime=$(LC_ALL=C ps -o etime= -p "$1" 2>/dev/null) || return 1
-  printf '%s\n' "$etime" | awk '
-    { gsub(/[[:space:]]/, "") }
-    !/^[0-9][0-9:-]*[0-9]$/ { exit 1 }
+# fm_sup_endpoint_agent_age <endpoint-pid>: seconds since the endpoint's
+# current agent started - the youngest of <endpoint-pid> itself and each
+# verified harness process in its subtree whose parent is not one (the
+# classifier in bin/fm-agent-process-lib.sh), so a relaunch typed into a
+# long-lived pane shell is measured from its new agent, while an old agent's
+# own tool or MCP children never make it look young. Ages come from the
+# portable `ps -o etime=` ([[dd-]hh:]mm:ss). Fails when the endpoint pid is
+# gone or the process table is unreadable.
+fm_sup_endpoint_agent_age() {
+  local root=$1 rows pid ppid secs name args argv0 agents=' ' age=''
+  if ! command -v fm_agent_process_classify >/dev/null 2>&1; then
+    # shellcheck source=bin/fm-agent-process-lib.sh
+    . "$FM_SUP_LIB_DIR/fm-agent-process-lib.sh"
+  fi
+  rows=$(LC_ALL=C ps -axo pid=,ppid=,etime=,comm= 2>/dev/null) || return 1
+  rows=$(printf '%s\n' "$rows" | awk -v root="$root" '
     {
+      pid[NR] = $1; ppid[NR] = $2
+      etime = $3
       days = 0
-      if (index($0, "-")) { days = substr($0, 1, index($0, "-") - 1); $0 = substr($0, index($0, "-") + 1) }
-      n = split($0, part, ":")
-      secs = 0
-      for (i = 1; i <= n; i++) secs = secs * 60 + part[i]
-      print days * 86400 + secs
-      ok = 1
+      if (index(etime, "-")) { days = substr(etime, 1, index(etime, "-") - 1); etime = substr(etime, index(etime, "-") + 1) }
+      k = split(etime, part, ":")
+      secs[NR] = 0
+      for (i = 1; i <= k; i++) secs[NR] = secs[NR] * 60 + part[i]
+      secs[NR] += days * 86400
+      line = $0
+      sub(/^[ \t]*[0-9]+[ \t]+[0-9]+[ \t]+[0-9:-]+[ \t]+/, "", line)
+      comm[NR] = line
     }
-    END { exit(ok ? 0 : 1) }'
+    END {
+      want[root] = 1
+      changed = 1
+      while (changed) {
+        changed = 0
+        for (n = 1; n <= NR; n++) {
+          if ((ppid[n] in want) && !(pid[n] in want)) { want[pid[n]] = 1; changed = 1 }
+        }
+      }
+      for (n = 1; n <= NR; n++) {
+        if (pid[n] in want) { printf "%s\t%s\t%s\t%s\n", pid[n], ppid[n], secs[n], comm[n]; found = 1 }
+      }
+      exit(found ? 0 : 1)
+    }') || return 1
+  while IFS=$'\t' read -r pid ppid secs name; do
+    [ "$pid" != "$root" ] || continue
+    args=$(LC_ALL=C ps -p "$pid" -o args= 2>/dev/null) || continue
+    args=${args#"${args%%[![:space:]]*}"}
+    argv0=${args%%[[:space:]]*}
+    [ "$(fm_agent_process_classify "$name" "$argv0" "$args" "$pid")" != agent ] || agents="$agents$pid "
+  done <<EOF
+$rows
+EOF
+  while IFS=$'\t' read -r pid ppid secs name; do
+    case "$secs" in ''|*[!0-9]*) continue ;; esac
+    if [ "$pid" != "$root" ]; then
+      case "$agents" in *" $pid "*) ;; *) continue ;; esac
+      case "$agents" in *" $ppid "*) continue ;; esac
+    fi
+    if [ -z "$age" ] || [ "$secs" -lt "$age" ]; then age=$secs; fi
+  done <<EOF
+$rows
+EOF
+  [ -n "$age" ] || return 1
+  printf '%s\n' "$age"
 }
 
 # fm_supervision_home_verdict <home> [grace-seconds] [endpoint-pid] [harness]
@@ -149,9 +195,10 @@ fm_sup_pid_age() {
 # running, so it is neither healthy nor a reason to relaunch: either the live
 # lock is younger than the session-start runtime bound (FM_SESSION_START_TIMEOUT,
 # default 120s) with no completion yet, or the lock is absent or names a dead
-# pid while the endpoint-pid process (the secondmate's backend endpoint, see
-# fm_backend_endpoint_pid) is younger than that same bound - a freshly restored
-# agent that has not reached its own lock yet. Past that bound the same shapes
+# pid while the agent on the endpoint-pid process (the secondmate's backend
+# endpoint, see fm_backend_endpoint_pid; aged by fm_sup_endpoint_agent_age) is
+# younger than that same bound - a freshly restored or relaunched agent that has
+# not reached its own lock yet. Past that bound the same shapes
 # are failures. The watcher leg is fm_watcher_supervision_verdict (from
 # bin/fm-wake-lib.sh, which the caller has loaded) on that home's own state and
 # root under the supervision model of <harness>, its recorded harness, so a
@@ -179,7 +226,7 @@ fm_supervision_home_verdict() {
   [ "$start_bound" -gt 0 ] || start_bound=120
   case "$endpoint_pid" in
     ''|*[!0-9]*) ;;
-    *) endpoint_age=$(fm_sup_pid_age "$endpoint_pid") || endpoint_age='' ;;
+    *) endpoint_age=$(fm_sup_endpoint_agent_age "$endpoint_pid") || endpoint_age='' ;;
   esac
   lock_pid=$(cat "$home/state/.lock" 2>/dev/null || true)
   case "$lock_pid" in
@@ -194,7 +241,7 @@ fm_supervision_home_verdict() {
   if [ -n "$FM_SUP_HOME_REASON" ]; then
     if [ -n "$endpoint_age" ] && [ "$endpoint_age" -lt "$start_bound" ]; then
       FM_SUP_HOME_OK=starting
-      FM_SUP_HOME_REASON="its endpoint started ${endpoint_age}s ago and its own session start has not taken its lock yet"
+      FM_SUP_HOME_REASON="its endpoint agent started ${endpoint_age}s ago and its own session start has not taken its lock yet"
     fi
     return 0
   fi
