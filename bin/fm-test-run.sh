@@ -1706,7 +1706,8 @@ families_for_changed_path() {
       fi
       ;;
     tests/lib.sh|tests/*-helpers.sh|tests/fixtures.sh|tests/*-fixture.sh|tests/assets/*)
-      # Shared top-level test files, selected by the suites that name them.
+      # Shared top-level test files and tests/assets/ inputs, selected by the
+      # suites that name their basename.
       # Must stay below the tests/fixtures/*/* arm: a case glob's * spans /, so
       # tests/*-fixture.sh would otherwise swallow a nested
       # tests/fixtures/<dir>/<name>-fixture.sh and scan for its basename
