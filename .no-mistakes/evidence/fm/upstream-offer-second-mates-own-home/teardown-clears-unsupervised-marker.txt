@@ -1,7 +1,41 @@
-Real lab lifecycle: bin/fm-home-seed.sh sm4 + bin/fm-spawn.sh sm4 ... claude --secondmate (real claude, lab tmux socket), HEAD 4fce533
---- tick with sm4 holding its own lock:
+Real lab lifecycle at HEAD fc1e9042: bin/fm-home-seed.sh sm4 + bin/fm-spawn.sh sm4 --secondmate (real claude, lab tmux socket), then bin/fm-teardown.sh
+--- seed:
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+scaffolded: /tmp/fm-lab.brb420/main/data/sm4/brief.md (secondmate charter)
+home=/tmp/fm-lab.brb420/sm4
+seed rc=0
+--- spawn:
+fm-gate-refuse: gate agent lifecycle permitted only against lab home /tmp/fm-lab.brb420/main
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+warning: secondmate sm4 sync skipped before launch: primary default-branch commit cannot be resolved
+spawned sm4 harness=claude kind=secondmate mode=secondmate yolo=off window=sm3:fm-sm4 worktree=/tmp/fm-lab.brb420/sm4
+spawn rc=0
+window=sm3:fm-sm4
+endpoint_task_id=sm4
+worktree=/tmp/fm-lab.brb420/sm4
+project=/tmp/fm-lab.brb420/sm4
+harness=claude
+kind=secondmate
+mode=secondmate
+yolo=off
+tasktmp=/tmp/fm-sm4
+model=default
+effort=default
+busy_gen=g1792276636.1484058.7726
+spawn_gen=s1792276636.1483645.16713
+home=/tmp/fm-lab.brb420/sm4
+projects=
+--- sm4 pane:
+❯ 
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  sm4 on  HEAD (fc1e904)  ❯ [Opus 5.5]
+  ⏵⏵ bypass permissions on (shift+tab to cycle) · ← 1 agent
+sm4 own lock: 1485198 completion: 1485198
+--- tick with sm4 as-is:
 tick rc=0
-sm4 own lock: 2972214
 --- simulate the lost-lock state: sm4/state/.lock -> dead pid 99999999
 WAKE: check: secondmate sm4 alive but unsupervised: its own session lock names pid 99999999, which is not a live harness; recover with bin/fm-control.sh sm4 relaunch
 tick rc=0
@@ -9,8 +43,8 @@ marker before teardown: .secondmate-unsupervised-sm4
 --- bin/fm-teardown.sh sm4 --force:
 WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
 WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
-teardown sm4 complete (window sm3:fm-sm4, worktree /tmp/fm-lab.GfEseN/sm4)
+teardown sm4 complete (window sm3:fm-sm4, worktree /tmp/fm-lab.brb420/sm4)
 teardown rc=0
 marker after teardown: <absent>
-sm4.meta after: ls: cannot access '/tmp/fm-lab.GfEseN/main/state/sm4.meta': No such file or directory
-other mate's marker untouched: .secondmate-unsupervised-sm1
+sm4.meta after: absent
+other mate's marker untouched: .secondmate-unsupervised-sm3

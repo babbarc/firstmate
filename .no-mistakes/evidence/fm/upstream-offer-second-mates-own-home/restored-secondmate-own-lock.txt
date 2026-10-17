@@ -1,7 +1,6 @@
-== Run against HEAD 4fce533 (re-driven). Real claude launched in lab tmux socket with leaked FM_HOME=/tmp/fm-lab.GfEseN/main
-== sm-head (4fce533), marked secondmate root /tmp/fm-lab.GfEseN/sm-head
-own state/.lock: 2922100  .session-start-complete: 2922100
-== sm-base (15ad1bd), marked secondmate root /tmp/fm-lab.GfEseN/sm-base
-own state/.lock: <absent>  .session-start-complete: <absent>
-sm-head lock pid comm: claude
-leaked launcher home main/state/.lock: 2922103 comm=claude (taken by the base build's secondmate)
+== Re-driven at HEAD fc1e9042 vs base 4e6b9f5. Real claude (v2.1.302) launched on lab tmux socket with leaked FM_HOME=/tmp/fm-lab.brb420/main
+== sm-head (fc1e904), marked secondmate root /tmp/fm-lab.brb420/sm-head; claude pid 1441730, its env: FM_HOME=/tmp/fm-lab.brb420/main
+   own state/.lock: 1441730  .session-start-complete: 1441730
+== sm-base (4e6b9f5), marked secondmate root /tmp/fm-lab.brb420/sm-base; claude pid 1441733, its env: FM_HOME=/tmp/fm-lab.brb420/main
+   own state/.lock: <absent>  .session-start-complete: <absent>
+== leaked launcher home main/state/.lock: 1441733 comm=claude (pane pid sm-base=1441733)

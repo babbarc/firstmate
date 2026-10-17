@@ -1,0 +1,5 @@
+== Agent tool-shell entry point bin/fm-check-register.sh run from each mate's home with the pane's leaked FM_HOME=/tmp/fm-lab.brb420/main
+-- sm-head: rc=0 output: registered: state/demo.check.sh
+   own state/demo.check-trust: present; main/state/demo.check-trust: absent
+-- sm-base: rc=1 output: error: custom check is unavailable
+   own state/demo.check-trust: absent; main/state/demo.check-trust: absent

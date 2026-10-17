@@ -1,7 +1,14 @@
-HEAD 4fce533 bin/fm-bootstrap.sh run as the lab primary's session-start sweep, FM_HOME=/tmp/fm-lab.GfEseN/main, tmux backend on the lab socket
-sm1: base-built mate, alive claude, own lock absent; sm2: HEAD mate, supervised; sm3: claude ~1min old in an older pane shell, own lock names dead pid 99999999 (inside default 120s startup window)
---- output:
+HEAD fc1e9042 bin/fm-bootstrap.sh run as the lab primary's session-start sweep, FM_HOME=/tmp/fm-lab.brb420/main, tmux backend on the lab socket, FM_SESSION_START_TIMEOUT=25
+sm1: base-built mate, alive claude, own lock absent; sm2: HEAD mate, supervised; sm3: claude just typed into a 30s-old pane shell, own lock names dead pid 99999999
+sm-base:fm-sm1 pane_pid=1441733 cmd=claude
+sm-head:fm-sm2 pane_pid=1441730 cmd=claude
+sm3:fm-sm3 pane_pid=1458890 cmd=claude
+    PID    PPID     ELAPSED COMMAND
+1458890 1441729       00:33 bash
+1460865 1458890       00:03 claude
+--- sweep output:
 SECONDMATE_LIVENESS: secondmate sm1: alive but unsupervised: its own session lock is absent or malformed; recover with bin/fm-control.sh sm1 relaunch
+SECONDMATE_LIVENESS: secondmate sm2: alive but unsupervised: its watcher beacon is never while supervision is required; recover with bin/fm-control.sh sm2 relaunch
 SECONDMATE_SYNC: secondmate sm1: skipped: primary default-branch commit cannot be resolved
 SECONDMATE_SYNC: secondmate sm2: skipped: primary default-branch commit cannot be resolved
 SECONDMATE_SYNC: secondmate sm3: skipped: primary default-branch commit cannot be resolved

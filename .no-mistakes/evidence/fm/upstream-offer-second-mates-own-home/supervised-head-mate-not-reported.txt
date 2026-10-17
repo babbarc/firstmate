@@ -1,0 +1,7 @@
+Follow-up: the earlier sm2 'watcher beacon never while supervision is required' report was caused by the fixture demo check registered in sm-head (scenario 2), which makes supervision required with no watcher running - an accurate verdict. Fixture check removed; sm2 holds its own lock+completion and needs no watcher.
+--- sweep output:
+SECONDMATE_LIVENESS: secondmate sm3: alive but unsupervised: its own session lock names pid 99999999, which is not a live harness; recover with bin/fm-control.sh sm3 relaunch
+(no line for sm2 => supervised)
+tick rc=0
+--- markers after tick (sm2 marker cleared, sm3 still reported-once):
+.secondmate-unsupervised-sm3

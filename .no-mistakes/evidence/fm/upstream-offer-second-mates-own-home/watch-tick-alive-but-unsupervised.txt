@@ -1,28 +1,30 @@
-Live lab primary home /tmp/fm-lab.GfEseN/main (tmux backend, private fm-lab socket), HEAD 4fce533 bin/fm-watch.sh secondmate_liveness_tick
-sm1 = base-built (15ad1bd) secondmate, real claude, own home never took its lock; sm2 = HEAD-built secondmate, real claude, own lock+completion
---- sm1.meta
-window=sm-base:fm-sm1
-kind=secondmate
-harness=claude
-home=/tmp/fm-lab.GfEseN/sm-base
---- sm2.meta
-window=sm-head:fm-sm2
-kind=secondmate
-harness=claude
-home=/tmp/fm-lab.GfEseN/sm-head
---- panes:
-sm-base:fm-sm1 pid=2922103 cmd=claude
-sm-head:fm-sm2 pid=2922100 cmd=claude
---- tick 1 wakes:
+HEAD fc1e9042 bin/fm-watch.sh secondmate_liveness_tick in the lab primary home (same live panes)
+--- tick 1 (rc=0) wakes:
 WAKE: check: secondmate sm1 alive but unsupervised: its own session lock is absent or malformed; recover with bin/fm-control.sh sm1 relaunch
-tick rc=0
---- tick 2 wakes (repeat suppressed):
-tick rc=0
---- primary wake queue (single row, nothing for supervised sm2):
-1792194404	1	check	secondmate-unsupervised-sm1	check: secondmate sm1 alive but unsupervised: its own session lock is absent or malformed; recover with bin/fm-control.sh sm1 relaunch
+--- tick 2 (rc=0) wakes (repeat must be suppressed):
+--- primary wake queue:
+1792276493	1	check	secondmate-unsupervised-sm1	check: secondmate sm1 alive but unsupervised: its own session lock is absent or malformed; recover with bin/fm-control.sh sm1 relaunch
+1792276493	2	check	secondmate-unsupervised-sm2	check: secondmate sm2 alive but unsupervised: its watcher beacon is never while supervision is required; recover with bin/fm-control.sh sm2 relaunch
 --- markers:
-.secondmate-liveness-tick
 .secondmate-unsupervised-sm1
---- claude pids still alive after ticks (report only, nothing killed):
-2922100 claude
-2922103 claude
+.secondmate-unsupervised-sm2
+--- waiting past the 25s startup window for sm3 ...
+    PID     ELAPSED COMMAND
+1460865       00:32 claude
+--- tick 3 (rc=0) wakes:
+WAKE: check: secondmate sm3 alive but unsupervised: its own session lock names pid 99999999, which is not a live harness; recover with bin/fm-control.sh sm3 relaunch
+--- queue rows for sm3:
+1792276521	3	check	secondmate-unsupervised-sm3	check: secondmate sm3 alive but unsupervised: its own session lock names pid 99999999, which is not a live harness; recover with bin/fm-control.sh sm3 relaunch
+--- markers:
+.secondmate-unsupervised-sm1
+.secondmate-unsupervised-sm2
+.secondmate-unsupervised-sm3
+--- now sm1 regains supervision (lock+completion written for its live pid): marker must clear
+--- tick 4 (rc=0) wakes:
+--- markers:
+.secondmate-unsupervised-sm2
+.secondmate-unsupervised-sm3
+--- claude pids still alive (report only, nothing killed):
+sm-base 1441733 claude
+sm-head 1441730 claude
+sm3 1458890 claude

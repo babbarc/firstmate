@@ -1,36 +1,15 @@
+=== fm-pi-home-leak
 ok - Pi restored second mate resolves its own home despite a leaked launcher FM_HOME/FM_ROOT_OVERRIDE
+ok - agent-run secondmate command operates on its own home despite a leaked launcher FM_HOME/FM_ROOT_OVERRIDE
 # all fm-pi-home-leak tests passed
 fm-pi-home-leak rc=0
-Note: switching to '4fce5334f2a95a2887b72720a9e7aaee8f0cc52a'.
-
-You are in 'detached HEAD' state. You can look around, make experimental
-changes and commit them, and you can discard any commits you make in this
-state without impacting any branches by switching back to a branch.
-
-If you want to create a new branch to retain commits you create, you may
-do so (now or later) by using -c with the switch command. Example:
-
-  git switch -c <new-branch-name>
-
-Or undo this operation with:
-
-  git switch -
-
-Turn off this advice by setting config variable advice.detachedHead to false
-
-ok - seed: registry scope+projects, charter copied, clones+origins, no-mistakes init in subhome only
-warning: secondmate design sync skipped before launch: primary default-branch commit cannot be resolved
-ok - spawn: launches in the subhome with persistent charter, records routing meta
-ok - send: a bare fm-<id> secondmate enqueues a marked request and rings the meta window
-ok - handoff: in-scope items move verbatim, out-of-scope stays, idempotent
-ok - recovery: respawns from the durable registry and persistent home
-ok - teardown: removes the home, then clears meta and the registry route
-fm-secondmate-lifecycle-e2e rc=0
+=== fm-secondmate-liveness
 ok - fm_backend_tmux_agent_state: separates live, dead, missing, ambiguous, and unreadable
 ok - fm_backend_tmux_agent_state: rejects malformed targets before probing tmux
 ok - fm_backend_herdr_agent_state: preserves missing/no-agent/live/unknown husk behavior
 ok - fm_backend_agent_state: routes tmux/Herdr and keeps Zellij unverified
 ok - sweep: a confirmed-dead secondmate endpoint is killed and respawned
+ok - sweep: secondmate recovery resolves its durable account despite a different ambient login
 ok - sweep: distinct secondmate relaunches serialize across the task-set lock
 ok - sweep: an already-live secondmate is untouched and distinguishable in verbose diagnostics
 ok - sweep: an authoritatively missing Pi secondmate window is relaunched
@@ -57,6 +36,7 @@ ok - poll probe: remote states map to the same contract as local, one call each
 ok - poll probe: unreachable or inconclusive remote reads preserve the route
 # all fm-secondmate-liveness tests passed
 fm-secondmate-liveness rc=0
+=== fm-secondmate-sync
 ok - T1 updated: a behind home fast-forwards to the primary's local HEAD
 ok - T2 current: an already-current home is a no-op and reports no instruction change
 ok - T3 dirty: an uncommitted home is skipped, its edit preserved
@@ -91,3 +71,122 @@ ok - R10 a host too old for a parent-targeted sync is reported with the command 
 ok - R9 a remote launch leaves the home on the parent's commit while an ordinary spawn follows its own checkout
 # all fm-secondmate-sync tests passed
 fm-secondmate-sync rc=0
+=== fm-sessionstart-nudge
+ok - fm-sessionstart-nudge: a genuine primary gets one explicitly marked instruction line
+ok - fm-sessionstart-nudge: NO_MISTAKES_GATE is silent
+ok - fm-sessionstart-nudge: .no-mistakes gate common-dir is silent
+ok - fm-sessionstart-nudge: an unmarked linked task worktree is silent
+ok - fm-sessionstart-nudge: a marked linked secondmate home is a primary
+ok - fm-sessionstart-nudge: a checkout without state is silent
+ok - fm-sessionstart-nudge: a lock holder in process ancestry is already run
+ok - fm-sessionstart-nudge: a lock holder that is pid 1 of its own namespace is already run
+ok - OpenCode session.created delivers the exact wrapper nudge once per session
+ok - run wrapper: startup runs the full digest and never also nudges
+ok - run wrapper: clear and compact re-emit the digest without repeating startup sweeps
+ok - run wrapper forwards only stale-cache rebuild sources to immutable-baseline instruction refresh
+ok - run wrapper refreshes a compact even when startup completion is unproven
+ok - run wrapper: clear falls back to full startup when completion is unproven
+ok - run wrapper: clear accepts completion only from the current harness
+ok - run wrapper: a resume with no owned lock takes the helm instead of nudging
+ok - run wrapper: a resume that still owns the lock stays silent instead of re-running the digest
+ok - run wrapper: an owned resume hook payload stays silent while a startup would take the helm
+ok - run wrapper: the hook payload's source field drives routing with no explicit argument
+ok - run wrapper: an unrecognized or absent source takes the helm rather than skipping it
+ok - run wrapper: ordinary ineligible opens stay silent-zero and Pi preflight gets an explicit silent stand-down
+ok - run wrapper and home lib: a seeded secondmate home wins over a leaked launcher FM_HOME, an unmarked root is untouched, and no new FM_ROOT export reaches a child
+ok - secondmate scripts derive every state path from their own home under a leaked launcher FM_HOME
+ok - run wrapper: a fresh primary checkout gets its missing state dir created, a linked worktree still does not
+ok - run wrapper: a fresh primary that cannot create its state dir says so on stderr, then stands down
+ok - run wrapper: a session start that cannot take the lock still opens the session and says so
+ok - Pi distinguishes header-proven restored CLI sessions from named create-if-missing startups
+ok - Pi provider preflight owns one generation-bound startup prerequisite with deterministic fallback, replacement, cancellation, timeout, and truncation
+ok - Pi reload shutdown releases its exit listener and stale startup generation
+ok - Pi retains a bounded digest prefix and loudly marks oversized preflight delivery
+fm-sessionstart-nudge rc=0
+=== fm-wake-queue
+ok - an abandoned same-process lock hold is reclaimed; a parent's live hold is not
+ok - without BASHPID a subshell cannot release or reclaim its parent lock and owns its own hold
+ok - bounded acquire hands ownership to the waiting caller after contention
+ok - presentation lock waits are bounded and retriable without weakening acknowledgement atomicity
+ok - malformed presentation locks report acquire failure instead of contention
+tests/wake-helpers.sh: line 333: 1583223 Killed                     PATH="$dir/fakebin:$PATH" FM_FAKE_NOW_FILE="$dir/now" FM_HOME="$dir" FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$dir/state" FM_FAKE_TMUX_WINDOW='firstmate:fm-mate' FM_SECONDMATE_WAKE_STALL_SECS=1 FM_SECONDMATE_LIVENESS_SECS=99999999 FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 "$WATCH" > "$dir/watch-$leg.out" 2> "$dir/watch-$leg.err"
+tests/wake-helpers.sh: line 333: 1583582 Killed                     PATH="$dir/fakebin:$PATH" FM_FAKE_NOW_FILE="$dir/now" FM_HOME="$dir" FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$dir/state" FM_FAKE_TMUX_WINDOW='firstmate:fm-mate' FM_SECONDMATE_WAKE_STALL_SECS=1 FM_SECONDMATE_LIVENESS_SECS=99999999 FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 "$WATCH" > "$dir/watch-$leg.out" 2> "$dir/watch-$leg.err"
+tests/wake-helpers.sh: line 333: 1585103 Killed                     PATH="$dir/fakebin:$PATH" FM_FAKE_NOW_FILE="$dir/now" FM_HOME="$dir" FM_ROOT_OVERRIDE="$ROOT" FM_STATE_OVERRIDE="$dir/state" FM_FAKE_TMUX_WINDOW='firstmate:fm-mate' FM_SECONDMATE_WAKE_STALL_SECS=1 FM_SECONDMATE_LIVENESS_SECS=99999999 FM_POLL=1 FM_SIGNAL_GRACE=0 FM_CHECK_INTERVAL=999999 FM_HEARTBEAT=999999 "$WATCH" > "$dir/watch-$leg.out" 2> "$dir/watch-$leg.err"
+ok - foreign secondmate queue alerts once per no-progress episode without age-only or cascade noise
+ok - declared external-wait pause rows do not feed secondmate wake-loop escalation
+ok - a reprovisioned queue generation starts a fresh no-progress interval
+ok - an active turn defers the secondmate stall escalation without cancelling it
+ok - a long-lived mate mid-turn is not a stall, but a queue frozen past the busy bound still alarms
+ok - a proven-idle leftover row is rung so the child home can drain without a parent alarm
+ok - TERM stops a watcher blocked in the drain-ring idle capture and runs its cleanup
+ok - busy panes defer without a ring and unknown panes keep the parent alarm
+ok - a leftover row that survives a proven-idle ring still surfaces as a genuine stall
+ok - secondmate stall markers reject symlinks without touching their targets
+ok - stall publication acknowledgement closes the pre-marker crash window
+ok - empty prefix mate cleanup preserves another mate's stall receipt
+ok - self-announced appends suppress only their own bytes and fail toward waking
+ok - separate self-announced answers after a fold stay owned; worker decisions and later lines still wake
+ok - an unreadable status still reads as unreported, with or without owned growth
+ok - a worker resolved in fold lag still wakes after this home's close
+ok - owned growth suppresses the wake without hiding the turn-ended annotation
+ok - historical annotations replay nothing already announced and keep everything new
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 1611936.1792276890.m7zV17
+ok - concurrent append plus drain preserves durable records through acknowledgement
+ok - signal written while no watcher runs is caught on next run
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 1627142.1792276901.67hBmE
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+ok - stale wake is queued before suppressor state is advanced
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 1628776.1792276903.ylI6lY
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+ok - a not-provably-working stale wake is queued before its suppressor is advanced
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 1630580.1792276905.6wooD3
+WARNING: queued wakes pending - drain them with bin/fm-wake-drain.sh before anything else.
+ok - registered custom check output is queued before cadence suppression
+ok - concurrent drains replay until one post-handling acknowledgement consumes records
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 4 --recovery-generation 1632952.1792276907.vlXVId
+ok - drain collapses obvious duplicate heartbeat and signal records
+ok - drain asserts watcher liveness: warns on a lapse, stays silent for a live watcher with a fresh beacon
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 8 --recovery-generation 1634699.1792276909.CdN8cS
+ok - structural signal enrichment is separate, deduped, home-local, and tier-zero for other wakes
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 13 --recovery-generation 1636306.1792276909.6xyQwJ
+ok - every readable unread status line is annotated in full while invalid status files preserve their raw wakes
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation 1638199.1792276912.8TdGC2
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 1638199.1792276912.8TdGC2
+ok - slow annotation releases the append lock and a deleted status file fails open
+ok - a branch-actor scoped ack never swallows an unacked main-owned row, and main's later drain sees exactly what remains
+ok - main drain and acknowledgement exclude an active branch grant
+ok - a branch-actor acknowledgement commits secondmate stall receipts for exactly its granted rows
+ok - a branch-held row raises no queued-wake warning for main, and the same row is presented and acknowledged once the grant clears
+ok - a queue that cannot be counted keeps the queued-wake alarm up
+ok - structurally unusable rows are retired by main alone, leaving every remaining row presentable and acknowledgeable
+ok - branch grant cannot take a row already claimed by main
+ok - main's acknowledgement leaves a row that arrived after its drain for whichever actor takes it next
+ok - actor ownership filtering precedes same-key deduplication
+ok - main reclaims rows granted to an exited branch owner
+ok - a branch-actor drain with no eligible-row snapshot refuses loudly instead of draining nothing
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 1 --recovery-generation existing
+ok - wake append publishes atomic recovery evidence before durable rows
+ok - recovery mint and delivery log avoid sibling $()
+ok - wake drain: generation-less legacy wakes are adopted and acknowledged
+ok - a handover undoes only the downtime its own stop published over an acknowledged episode
+ok - wake drain: a stale acknowledgement cannot retire or consume a newer recovery episode
+ok - wake drain: an acknowledgement that consumes nothing says so and names the exact command for the current wake
+ok - wake drain: a branch acknowledgement that consumes nothing names the exact command for its granted wake
+ok - wake drain: recovery acknowledgement failures are explicit and retryable
+WAKE_ACK_REQUIRED: after handling completes run bin/fm-wake-drain.sh --ack-through 2 --recovery-generation 1660814.1792276941.revXcj
+ok - interruptions preserve durable rows until post-handling acknowledgement
+ok - fm_wake_queue_prune_task: prunes wakes for target task without touching other tasks
+ok - drain rotates scratch files an interrupted drain left under the queue lock
+ok - watch liveness: a dead secondmate is relaunched once, ledgered, and quiet afterwards
+ok - watch liveness: a missing secondmate endpoint is relaunched without a pre-kill
+ok - watch liveness: one tick relaunches every dead mate, queues a row each, and wakes once
+ok - watch liveness: alive and ambiguous endpoints are probed, logged, and never touched
+ok - watch liveness: the cadence marker gates probing and survives across legs
+ok - watch liveness: the attempt bound parks a flapping mate once and a live probe rearms a full budget
+ok - watch liveness: a failed auto-relaunch wakes once with its cause and is ledgered
+ok - watch liveness: an unwritable or unreadable relaunch ledger refuses to kill or spawn
+ok - watch liveness: a per-mate error keeps scanning, recovers later mates, and still wakes
+ok - watch liveness: an outcome that could not be queued surfaces as an error, not a wake
+ok - watch liveness: a mate mid-episode under the shared liveness lock is skipped entirely
+ok - watch liveness: an unreachable remote secondmate is probed, preserved, and never failed over
+fm-wake-queue rc=0
