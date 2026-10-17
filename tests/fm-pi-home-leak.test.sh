@@ -102,4 +102,21 @@ assert_contains "$(cat "$LOG")" "CHILD FM_HOME=$SM FM_ROOT_OVERRIDE=$SM" \
 
 pass "Pi restored second mate resolves its own home despite a leaked launcher FM_HOME/FM_ROOT_OVERRIDE"
 
+cp "$ROOT/bin/fm-check-register.sh" "$ROOT/bin/fm-home-lib.sh" "$ROOT/bin/fm-pr-lib.sh" \
+  "$ROOT/bin/fm-check-lib.sh" "$SM/bin/"
+for home in "$SM" "$MAIN"; do
+  printf '#!/usr/bin/env bash\nexit 0\n' > "$home/state/leak.check.sh"
+  chmod 0700 "$home/state/leak.check.sh"
+done
+out=$(FM_HOME="$MAIN" FM_ROOT_OVERRIDE="$MAIN" "$SM/bin/fm-check-register.sh" leak 2>&1) || {
+  printf 'not ok - agent-run check registration failed under a leaked home: %s\n' "$out" >&2
+  exit 1
+}
+assert_present "$SM/state/leak.check-trust" \
+  "an agent-run command did not register the check in the secondmate's own state"
+assert_absent "$MAIN/state/leak.check-trust" \
+  "an agent-run command registered the check in the leaked main home's state"
+
+pass "agent-run secondmate command operates on its own home despite a leaked launcher FM_HOME/FM_ROOT_OVERRIDE"
+
 echo "# all fm-pi-home-leak tests passed"

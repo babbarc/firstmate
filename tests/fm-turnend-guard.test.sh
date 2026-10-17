@@ -1194,6 +1194,7 @@ test_pi_extension_keeps_marker_of_live_ancestor_session() {
   mkdir -p "$repo/.pi/extensions/lib" "$repo/bin" "$home/state"
   cp "$ROOT/.pi/extensions/fm-primary-turnend-guard.ts" "$ext"
   cp "$ROOT/.pi/extensions/lib/fm-operational-input.ts" "$repo/.pi/extensions/lib/fm-operational-input.ts"
+  cp "$ROOT/.pi/extensions/lib/fm-home-resolve.ts" "$repo/.pi/extensions/lib/fm-home-resolve.ts"
   cp "$ROOT/bin/fm-operational-input.sh" "$repo/bin/fm-operational-input.sh"
   for marker_case in nested dead foreign fresh; do
     rm -f "$home/state/.pi-turnend-extension-loaded"
