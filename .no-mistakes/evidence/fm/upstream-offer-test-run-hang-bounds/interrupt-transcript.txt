@@ -1,0 +1,11 @@
+runner pid/pgid=1938089; fixture pid=1938185 pgid=1938182; escaped helper pid=1938188 sid=1938188
+invocation: bin/fm-test-run.sh tests/fm-intr-fixture.test.sh  (no flags: default 3600s per-script + 21600s run bound)
+sending SIGINT to process group -1938089 (what a terminal Ctrl-C does)
+runner exit=130
+pid 1938185 gone
+pid 1938188 gone
+--- runner stderr:
+fm-test-run: FAIL: run interrupted by SIGINT while running tests/fm-intr-fixture.test.sh; swept 7 leftover fixture process(es)
+--- runner stdout:
+FM_TEST_BEGIN 2026-10-17T06:24:26Z tests/fm-intr-fixture.test.sh family=unclassified expected_gate_skip=none
+ok - fixture about to wedge

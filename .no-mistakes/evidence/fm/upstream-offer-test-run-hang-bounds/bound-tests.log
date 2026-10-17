@@ -1,0 +1,9 @@
+ok - --per-script-timeout-secs turns a hung script into a bounded failure
+ok - every selection mode bounds each script by default, and 0 opts out
+ok - a tripped per-script bound sweeps descendants that left its process group
+ok - --run-timeout-secs bounds the whole invocation, scripts and selection alike
+ok - an interrupted run leaves none of its script's processes running
+ok - the automatic --changed bound gives the slow watcher suite at least 3600s
+ok - --max-wall-ms fails an over-budget run and refuses a malformed budget
+not ok - ruby is required to parse .github/workflows/ci.yml as YAML
+bash $D/sel.sh  1.39s user 0.86s system 11% cpu 19.664 total

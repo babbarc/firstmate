@@ -1,0 +1,38 @@
+### Scenario A: default bound (no flag) - process tree while a fixture runs
+2406393 2406380 bash bin/fm-test-run.sh tests/fm-slow-healthy.test.sh
+2406409 2406409 bash /tmp/fmlive.It9SiK/repo/bin/fm-test-run.sh tests/fm-slow-healthy.test.sh
+2406431 2406409 bash /tmp/fmlive.It9SiK/repo/bin/fm-test-run.sh tests/fm-slow-healthy.test.sh
+2406435 2406435 timeout -k 1 3600 bash -c      status_file=$1     shift     "$@"     command_rc=$?     printf "%s\n" "$command_rc" > "$status_file"     exit "$command_rc"    _ /tmp/fm-timeout-status.Y ...
+2406437 2406435 bash -c      status_file=$1     shift     "$@"     command_rc=$?     printf "%s\n" "$command_rc" > "$status_file"     exit "$command_rc"    _ /tmp/fm-timeout-status.YA3yHK bash -c bash ...
+2406438 2406435 bash -c bash "$1" 2>&1 | tee "$2"; exit "${PIPESTATUS[0]}" _ tests/fm-slow-healthy.test.sh /tmp/fm-test-run.uzoA1Q/out.0
+2406439 2406435 bash tests/fm-slow-healthy.test.sh
+--- runner output (rc=0):
+FM_TEST_BEGIN 2026-10-17T07:06:24Z tests/fm-slow-healthy.test.sh family=unclassified expected_gate_skip=none
+ok - slow healthy fixture started
+ok - slow healthy fixture done
+FM_TEST_END 2026-10-17T07:06:32Z tests/fm-slow-healthy.test.sh exit=0 duration_ms=8038 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=8094
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=8038 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-slow-healthy.test.sh duration_ms=8038
+
+### Scenario B1: script slower than an explicit bound is tolerated when under it (bound 20s, script 8s)
+FM_TEST_BEGIN 2026-10-17T07:06:32Z tests/fm-slow-healthy.test.sh family=unclassified expected_gate_skip=none
+ok - slow healthy fixture started
+ok - slow healthy fixture done
+FM_TEST_END 2026-10-17T07:06:40Z tests/fm-slow-healthy.test.sh exit=0 duration_ms=8023 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=0 duration_ms=8089
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=8023 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-slow-healthy.test.sh duration_ms=8023
+rc=0
+
+### Scenario B2: hung script with escaped setsid helper under --per-script-timeout-secs 5
+FM_TEST_BEGIN 2026-10-17T07:06:40Z tests/fm-hung-escaper.test.sh family=unclassified expected_gate_skip=none
+ok - fixture is about to wedge
+not ok - tests/fm-hung-escaper.test.sh exceeded the per-script bound of 5s (--per-script-timeout-secs) and was terminated; swept 1 leftover process(es) outside its process group
+FM_TEST_END 2026-10-17T07:06:46Z tests/fm-hung-escaper.test.sh exit=124 duration_ms=6038 gate_skip=false
+FM_TEST_SUMMARY total=1 failed=1 skipped_gate=0 duration_ms=6085
+FM_TEST_SUMMARY_FAMILY family=unclassified count=1 duration_ms=6038 failed=1
+FM_TEST_SLOWEST rank=1 script=tests/fm-hung-escaper.test.sh duration_ms=6038
+fm-test-run: FAIL: per-script bound tripped: tests/fm-hung-escaper.test.sh exceeded --per-script-timeout-secs 5s and was terminated
+rc=1 elapsed=6s
+escaped setsid helper pid 2411998 is gone

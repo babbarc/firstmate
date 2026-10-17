@@ -1,0 +1,2 @@
+FM_TEST_BEGIN 2026-10-17T06:24:26Z tests/fm-intr-fixture.test.sh family=unclassified expected_gate_skip=none
+ok - fixture about to wedge

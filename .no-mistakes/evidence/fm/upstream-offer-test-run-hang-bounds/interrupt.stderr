@@ -1,0 +1,1 @@
+fm-test-run: FAIL: run interrupted by SIGINT while running tests/fm-intr-fixture.test.sh; swept 7 leftover fixture process(es)
