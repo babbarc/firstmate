@@ -965,7 +965,9 @@ case "\${1:-}" in
     esac
     ;;
   capture-pane) printf 'working\n' ;;
-  display-message) printf '0\n' ;;
+  # No pane tty: a value here is handed to ps -t, so the endpoint's verdict
+  # would come from whatever really runs on that terminal of this host.
+  display-message) case "\$*" in *pane_tty*) ;; *) printf '0\n' ;; esac ;;
   *) exit 0 ;;
 esac
 SH

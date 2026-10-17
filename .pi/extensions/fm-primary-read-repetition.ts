@@ -7,6 +7,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
 import { DEFAULT_LIMITS, HISTORY_TYPE, NOTICE_TYPE, ReadRepetition, readLimits, type ReadLimits } from "./lib/fm-primary-read-repetition-policy.ts";
+import { resolveFirstmateHome } from "./lib/fm-home-resolve.ts";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -170,7 +171,7 @@ export function loadReadRepetitionLimits(home: string, config: string, platform 
 }
 
 export default function (pi: ExtensionAPI): void {
-  const home = process.env.FM_HOME || process.env.FM_ROOT_OVERRIDE || root;
+  const home = resolveFirstmateHome(root);
   const config = join(process.env.FM_CONFIG_OVERRIDE || join(home, "config"), "read-repetition.json");
   const limits = loadReadRepetitionLimits(root, config);
   const primaryOptions = (): PrimaryOptions => ({

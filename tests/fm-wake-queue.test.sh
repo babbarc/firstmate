@@ -25,7 +25,7 @@ test_branch_grant_requires_lock_acquisition() {
   dir=$(make_case grant-lock-failure)
   fixture="$dir/bin"
   mkdir -p "$fixture"
-  cp "$GRANT" "$ROOT/bin/fm-wake-lib.sh" "$ROOT/bin/fm-path-lib.sh" "$fixture/"
+  cp "$GRANT" "$ROOT/bin/fm-wake-lib.sh" "$ROOT/bin/fm-home-lib.sh" "$ROOT/bin/fm-path-lib.sh" "$fixture/"
   # Inject only the acquire result in this disposable copy. Keep real owner
   # validation, grant mutations, and pid-guarded lock release in use.
   cat >> "$fixture/fm-wake-lib.sh" <<'SH'
@@ -3311,6 +3311,18 @@ test_drain_rotates_orphaned_scratch() {
 # ledger line, inconclusive verdicts are triage-only, an unreachable remote
 # route is preserved, and the attempt bound parks a mate that keeps dying.
 
+# One live "harness" process every liveness case's mate home locks to, with a
+# matching startup completion, so an alive endpoint's own home reads supervised
+# and the tick's home verdict stays out of these endpoint-recovery legs.
+LIVENESS_HARNESS_PID=
+start_liveness_harness() {
+  [ -z "$LIVENESS_HARNESS_PID" ] || return 0
+  bash -c 'exec -a pi sleep 60000' >/dev/null 2>&1 &
+  LIVENESS_HARNESS_PID=$!
+  trap 'kill "$LIVENESS_HARNESS_PID" 2>/dev/null; fm_test_cleanup' EXIT
+  sleep 0.2
+}
+
 # make_secondmate_liveness_case <name>: a watcher case dir carrying one local
 # secondmate whose tmux fixture answers the backend's agent-state probe AND the
 # guarded spawn's window lifecycle (kill-window, a window id from new-window).
@@ -3332,6 +3344,8 @@ make_secondmate_liveness_case() {
   printf 'sm1\n' > "$home/.fm-secondmate-home"
   printf '# Firstmate\n' > "$home/AGENTS.md"
   printf 'charter\n' > "$home/data/charter.md"
+  printf '%s\n' "$LIVENESS_HARNESS_PID" > "$home/state/.lock"
+  printf '%s\n' "$LIVENESS_HARNESS_PID" > "$home/state/.session-start-complete"
   printf 'codex\n' > "$dir/config/crew-harness"
   printf 'window=firstmate:fm-sm1\nkind=secondmate\nharness=claude\nbackend=tmux\nhome=%s\n' \
     "$home" > "$dir/state/sm1.meta"
@@ -3494,6 +3508,8 @@ test_secondmate_liveness_tick_relaunches_every_dead_mate_before_waking() {
   mkdir -p "$home/bin" "$home/data" "$home/state" "$home/config" "$home/projects"
   git init -q -b main "$home"
   printf 'sm2\n' > "$home/.fm-secondmate-home"
+  printf '%s\n' "$LIVENESS_HARNESS_PID" > "$home/state/.lock"
+  printf '%s\n' "$LIVENESS_HARNESS_PID" > "$home/state/.session-start-complete"
   printf '# Firstmate\n' > "$home/AGENTS.md"
   printf 'charter\n' > "$home/data/charter.md"
   printf 'window=firstmate:fm-sm2\nkind=secondmate\nharness=claude\nbackend=tmux\nhome=%s\n' \
@@ -3695,6 +3711,8 @@ test_secondmate_liveness_tick_error_keeps_scanning_and_wakes() {
   mkdir -p "$home/bin" "$home/data" "$home/state" "$home/config" "$home/projects"
   git init -q -b main "$home"
   printf 'sm2\n' > "$home/.fm-secondmate-home"
+  printf '%s\n' "$LIVENESS_HARNESS_PID" > "$home/state/.lock"
+  printf '%s\n' "$LIVENESS_HARNESS_PID" > "$home/state/.session-start-complete"
   printf '# Firstmate\n' > "$home/AGENTS.md"
   printf 'charter\n' > "$home/data/charter.md"
   printf 'window=firstmate:fm-sm2\nkind=secondmate\nharness=claude\nbackend=tmux\nhome=%s\n' \
@@ -3881,6 +3899,7 @@ test_recovery_ack_failure_is_reported
 test_interruption_before_and_after_raw_commit
 test_wake_queue_prune_task
 test_drain_rotates_orphaned_scratch
+start_liveness_harness
 test_secondmate_liveness_tick_relaunches_dead_endpoint_once
 test_secondmate_liveness_tick_relaunches_missing_endpoint
 test_secondmate_liveness_tick_relaunches_every_dead_mate_before_waking

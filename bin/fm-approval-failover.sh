@@ -18,6 +18,8 @@
 # A lifecycle failure leaves the setting saved and reports incomplete recovery.
 set -eu
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=bin/fm-home-lib.sh
+. "$SCRIPT_DIR/fm-home-lib.sh"
 case "${1:-}" in
   --help|-h)
     printf '%s\n' 'Usage: FM_HOME=<owning-home> fm-approval-failover.sh apply <task-id>' \

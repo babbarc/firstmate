@@ -21,7 +21,7 @@ try {
     mkdirSync(join(repo, "state"), { recursive: true });
     mkdirSync(join(repo, "config"), { recursive: true });
     mkdirSync(agentDir, { recursive: true });
-    for (const file of ["fm-primary-read-repetition.ts", "lib/fm-primary-read-repetition-policy.ts"])
+    for (const file of ["fm-primary-read-repetition.ts", "lib/fm-primary-read-repetition-policy.ts", "lib/fm-home-resolve.ts"])
       cpSync(join(source, ".pi/extensions", file), join(extensions, file));
     if (mode !== "default-off") writeFileSync(join(repo, "config/read-repetition.json"), '{"enabled":true}');
     writeFileSync(join(repo, "state/.lock"), `${process.pid}\n`);

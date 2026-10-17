@@ -14,7 +14,7 @@ mkdirSync(join(repo, "state"));
 mkdirSync(join(repo, "config"));
 mkdirSync(agentDir);
 mkdirSync(join(lab, "home"));
-for (const file of ["fm-primary-read-repetition.ts", "lib/fm-primary-read-repetition-policy.ts"])
+for (const file of ["fm-primary-read-repetition.ts", "lib/fm-primary-read-repetition-policy.ts", "lib/fm-home-resolve.ts"])
   cpSync(join(source, ".pi/extensions", file), join(repo, ".pi/extensions", file));
 writeFileSync(join(repo, "config/read-repetition.json"), '{"enabled":true}');
 writeFileSync(join(repo, "probe.ts"), `

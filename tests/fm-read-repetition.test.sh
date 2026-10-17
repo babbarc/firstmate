@@ -581,6 +581,7 @@ base=$(git -C "$TMP_ROOT/repo" rev-parse HEAD)
 git -C "$TMP_ROOT/repo" checkout -qb managed
 cp "$ROOT/.pi/extensions/fm-primary-read-repetition.ts" "$TMP_ROOT/repo/.pi/extensions/"
 cp "$ROOT/.pi/extensions/lib/fm-primary-read-repetition-policy.ts" "$TMP_ROOT/repo/.pi/extensions/lib/"
+cp "$ROOT/.pi/extensions/lib/fm-home-resolve.ts" "$TMP_ROOT/repo/.pi/extensions/lib/"
 git -C "$TMP_ROOT/repo" add -f .pi/extensions/fm-primary-read-repetition.ts .pi/extensions/lib/fm-primary-read-repetition-policy.ts
 git -C "$TMP_ROOT/repo" commit -qm 'managed fixture'
 git -C "$TMP_ROOT/repo" checkout -q --detach "$base"

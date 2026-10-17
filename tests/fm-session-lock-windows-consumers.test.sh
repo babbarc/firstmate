@@ -176,6 +176,24 @@ test_autoarm_midturn_health_follows_a_windows_lock_holder() {
   pass "auto-arm: mid-turn health accepts a rewake bound to a live win:<pid> holder and drops it when that holder exits"
 }
 
+test_home_verdict_accepts_a_windows_lock_holder() {
+  local home verdict
+  home=$(make_home home-verdict win:7204)
+  printf 'win:7204\n' > "$home/state/.session-start-complete"
+  verdict='. "$FM_ROOT_OVERRIDE/bin/fm-supervision-lib.sh" || exit 96
+    fm_supervision_home_verdict "$FM_HOME"
+    printf "%s|%s\n" "$FM_SUP_HOME_OK" "$FM_SUP_HOME_REASON"'
+  assert_equals "yes|" "$(lib_eval windows "$home" "$verdict")" \
+    "a live win:<pid> holder with its startup recorded was not judged supervised"
+  assert_contains "$(FM_TEST_WIN_TABLE="$GONE_TABLE" lib_eval windows "$home" "$verdict")" \
+    "no|its own session lock names pid win:7204, which is not a live harness" \
+    "an exited win:<pid> holder was not reported by its pid"
+  assert_contains "$(lib_eval posix "$home" "$verdict")" \
+    "no|its own session lock is absent or malformed" \
+    "a win: lock off Windows must stay an unusable holder"
+  pass "cross-home supervision verdict: a win:<pid> session lock is a usable holder only while that Windows process lives"
+}
+
 test_untagged_values_reach_the_numeric_helpers_unchanged() {
   local home live dead out
   home=$(make_home parity 1)
@@ -207,3 +225,4 @@ test_untagged_values_reach_the_numeric_helpers_unchanged
 test_supervision_main_key_reads_a_windows_session_lock
 test_autoarm_claim_pins_a_windows_lock_holder_and_reads_it_back
 test_autoarm_midturn_health_follows_a_windows_lock_holder
+test_home_verdict_accepts_a_windows_lock_holder
