@@ -20,9 +20,11 @@
 # lives in: when that checkout is a seeded secondmate root, any set FM_HOME,
 # FM_ROOT_OVERRIDE, or FM_ROOT is replaced with that root (keeping its export
 # state), so every path a caller derives afterwards - STATE, DATA, CONFIG,
-# PROJECTS - lands on the same home. Every entry point that loads
-# bin/fm-wake-lib.sh therefore sources this file BEFORE deriving any of those
-# paths; correcting only inside wake-lib would split a caller across two homes.
+# PROJECTS - lands on the same home. Every entry point that derives those paths
+# from the inherited environment - hooks, wake-lib callers, and the scripts the
+# agent runs directly from its own tool shell - therefore sources this file
+# BEFORE deriving any of them; correcting only inside wake-lib would split a
+# caller across two homes.
 
 fm_home_is_secondmate_root() {  # <root>
   local root=$1 marker
