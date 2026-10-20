@@ -1,0 +1,9 @@
+HERDR_WORKSPACE_ID=w1
+TERM_PROGRAM_VERSION=0.9.5
+TERM_PROGRAM=herdr
+HERDR_SOCKET_PATH=/home/yeti/.config/herdr/sessions/fm-lab-envleak-382115-30509/herdr.sock
+HERDR_BIN_PATH=/home/yeti/.local/bin/herdr
+HERDR_ENV=1
+HERDR_TAB_ID=w1:t1
+HERDR_SESSION=fm-lab-envleak-382115-30509
+HERDR_PANE_ID=w1:p1

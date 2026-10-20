@@ -1,0 +1,4 @@
+not ok - allowlist=absent spawn should succeed: warning: /tmp/fm-spawn-dispatch-profile.rqp6uy/env-absent/home/data/env-absent/launch-brief.md records no ship branch; defaulting to legacy branch fm/env-absent
+warning: /tmp/fm-spawn-dispatch-profile.rqp6uy/env-absent/home/data/env-absent/launch-brief.md records no delivery contract line (scaffolded before ship briefs recorded one); launching on the explicit --mode no-mistakes - confirm its definition of done matches
+warning: the selected herdr release could not be read, so the 0.8.0 floor for presentation spaces cannot be verified; using the ordinary flat layout instead. Upgrade herdr to 0.8.0 or newer (herdr update) to restore the projection, or write "on" into config/herdr-presentation-spaces to force it on this release.
+error: herdr server for session 'fm-lab-envleak-382115-30509' did not report running within 10s: expected exit 0, got 1
