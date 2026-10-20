@@ -1,0 +1,3 @@
+$ fm-pr-merge.sh task-x1 https://localhost/captain/server-ops/pulls/1 --allow-no-pipeline   # away-posture record exists
+error: --allow-no-pipeline is attended-only; while the away-posture record exists a GitLab merge requires a successful head pipeline and a Forgejo merge a successful combined commit status
+exit=2

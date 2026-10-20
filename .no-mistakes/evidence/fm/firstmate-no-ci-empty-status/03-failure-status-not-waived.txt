@@ -1,0 +1,6 @@
+$ fm-pr-merge.sh task-failure https://localhost/captain/server-ops/pulls/2 --allow-no-pipeline   # head has a real 'failure' commit status
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+armed: state/task-failure.check.sh
+error: refusing to merge https://localhost/captain/server-ops/pulls/2
+  - the combined commit status is "failure", not success
+exit=1

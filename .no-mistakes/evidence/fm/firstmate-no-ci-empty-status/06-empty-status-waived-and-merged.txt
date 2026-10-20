@@ -1,0 +1,16 @@
+$ curl .../commits/<head>/status   # real Gitea 28.1.0 answer for a head in a repo with no CI
+{"state":"pending","total_count":0,"statuses":null}
+$ fm-pr-merge.sh task-x1 https://localhost/captain/server-ops/pulls/1 --allow-no-pipeline   # attended
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+armed: state/task-x1.check.sh
+verified: https://localhost/captain/server-ops/pulls/1 is open and mergeable at head b04c18a96722ec030b932bf2bcf6af56442e30b3, with no commit status, waived by --allow-no-pipeline
+exit=0
+$ curl .../pulls/1   # forge state after the merge
+{"number":1,"state":"closed","merged":true,"head":"b04c18a96722ec030b932bf2bcf6af56442e30b3","merge_commit_sha":"a4e7865d55113ec397749bb073be558718337564"}
+$ cat state/task-x1.meta
+window=fm-task-x1
+worktree=/tmp/fm-lab.3uS4Tg/repo
+project=/tmp/fm-lab.3uS4Tg/repo
+kind=ship
+mode=no-mistakes
+pr=https://localhost/captain/server-ops/pulls/1

@@ -1,0 +1,6 @@
+$ fm-pr-merge.sh task-pending https://localhost/captain/server-ops/pulls/3 --allow-no-pipeline   # head has a real 'pending' commit status
+WARNING: watcher still down (same stale episode; last beat: never, grace 300s) - full banner already printed this episode.
+armed: state/task-pending.check.sh
+error: refusing to merge https://localhost/captain/server-ops/pulls/3
+  - the combined commit status is "pending", not success
+exit=1
