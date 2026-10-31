@@ -1,0 +1,2 @@
+error: herdr launcher pane 'w2:p1' belongs to the server at '/home/yeti/.config/herdr/sessions/fm-lab-envleak-1510401-22339/herdr.sock', not session 'fm-lab-envleak-1510401-22339' at '/tmp/fm-backend-tests.YYOQCM/user-ho
+ok - fm_backend_herdr_launcher_identity: refuses a launcher pane whose injected socket belongs to another herdr server

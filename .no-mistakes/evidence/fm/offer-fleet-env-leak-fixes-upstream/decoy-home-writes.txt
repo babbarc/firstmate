@@ -1,0 +1,12 @@
+== decoy-after: files written into the leaked home
+== decoy-before: files written into the leaked home
+./config/startup-memory-budget
+./data/pr-text-s1/brief.md
+./state/home-summary.json
+./state/.lock
+./state/.session-start-complete
+./state/t3code-sends/f53297567028301f008f37b0fab83c34dfdec7ec9c300cf9f9e985d4496a5c7f
+./state/t3code-sends/fm-1793487508-3818595-1531.accepted
+./state/t3code-sends/fm-1793487511-3822466-418.accepted
+./state/.trace-context-effective
+./state/.wake-queue

@@ -1,0 +1,5 @@
+{"workspace_id":"w1","label":"after"}
+{"workspace_id":"w2","label":"before"}
+{"workspace_id":"w3","label":"└ settle-single-stale-z1 · p:4h5SUFPA39hxKY8npsgm7A"}
+{"workspace_id":"w4","label":"before2"}
+{"workspace_id":"w5","label":"└ settle-single-stale-z1 · p:Ta8mtBaVvFDK9IZhCVu0sQ"}
