@@ -1,0 +1,2 @@
+not ok - exit on claude should succeed
+error: no task 't1' in /tmp/fm-envleak.DkuP6W/decoy-base/state (fm-control resolves an exact task id only): expected exit 0, got 1

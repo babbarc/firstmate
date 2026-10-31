@@ -1,23 +1,8 @@
-1 fm-backend-cmux.test.sh
-0 fm-backend-herdr.test.sh
-1 fm-backend-orca.test.sh
-1 fm-backend-paseo.test.sh
-1 fm-backend-rex.test.sh
-1 fm-backend.test.sh
-1 fm-backend-zellij.test.sh
-1 fm-control-relaunch.test.sh
-1 fm-control.test.sh
-1 fm-home-summary-refresh.test.sh
-1 fm-session-lock-ancestry.test.sh
-1 fm-sessionstart-nudge.test.sh
-1 fm-session-start.test.sh
-0 fm-spawn-batch.test.sh
-1 fm-spawn-compact-adviser-disable-remote.test.sh
-1 fm-spawn-dispatch-profile.test.sh
-1 fm-spawn-external-review.test.sh
-137 fm-spawn-orca-worktree.test.sh
-1 fm-spawn-pool-base-freshen.test.sh
-0 fm-task-inbox.test.sh
-0 fm-tasks-axi.test.sh
-1 fm-teardown-endpoint-safety.test.sh
-1 fm-teardown.test.sh
+1 0s fm-backend
+1 0s fm-control
+1 1s fm-session-start
+1 1s fm-test-fixtures
+1 2s fm-spawn-external-review
+1 7s fm-backend-rex
+1 50s fm-teardown
+1 0s fm-spawn-dispatch-profile

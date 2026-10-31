@@ -1,15 +1,20 @@
 #!/usr/bin/env bash
-# Runs suites from inside a real Herdr lab pane as a supervisor shell would.
-# usage: hosted-run.sh <tree> <label> <workdir> <evidence>
-tree=$1 label=$2 W=$3 E=$4
-decoy=$W/decoy-$label; mkdir -p "$decoy/config" "$decoy/state" "$decoy/data" "$decoy/projects"
-export FM_HOME=$decoy FM_ROOT=$decoy FM_ROOT_OVERRIDE=$decoy FM_STATE_OVERRIDE=$decoy/state FM_DATA_OVERRIDE=$decoy/data \
-  FM_CONFIG_OVERRIDE=$decoy/config FM_PROJECTS_OVERRIDE=$decoy/projects FM_BACKEND=herdr TERM_PROGRAM=herdr
-unset FM_GATE_REFUSE_BYPASS
-env | grep -E '^(HERDR_|TERM_PROGRAM=|FM_(HOME|BACKEND|STATE_OVERRIDE)=)' | sed "s#$W#\$W#g" > "$E/launcher-env-$label.txt"
-cd "$tree"
-mkdir -p "$W/logs-$label"
-ls tests | grep -E '^fm-(spawn|backend|teardown|recover|control|session|home|task).*test.sh' | grep -vE 'e2e|smoke|live' | xargs -I{} sh -c 'grep -q "lib.sh" tests/{} && echo {}' > "$W/suites"
-export W label
-xargs -P 6 -I{} bash -c 'timeout -k 5 400 bash tests/{} > "$W/logs-$label/{}.log" 2>&1; echo "$? {}"' < "$W/suites" | sort -k2 > "$E/suite-results-$label.txt"
+# Runs suites from inside a real Herdr lab pane with a supervisor's exports.
+# usage: hosted-run.sh <tree> <label> <workdir> <evidence> [suite ...]  ; rc captured directly, never via a pipe.
+tree=$1 label=$2 W=$3 E=$4; shift 4
+d=$W/decoy-$label; mkdir -p "$d/config" "$d/state" "$d/data" "$d/projects"
+export FM_HOME=$d FM_ROOT=$d FM_ROOT_OVERRIDE=$d FM_STATE_OVERRIDE=$d/state FM_DATA_OVERRIDE=$d/data \
+  FM_CONFIG_OVERRIDE=$d/config FM_PROJECTS_OVERRIDE=$d/projects FM_BACKEND=herdr TERM_PROGRAM=herdr
+unset FM_GATE_REFUSE_BYPASS NO_MISTAKES_GATE
+env | grep -E '^(HERDR_|TERM_PROGRAM=|FM_(HOME|BACKEND|STATE_OVERRIDE)=)' | sed "s#$W#\$W#g" | sort > "$E/launcher-env-$label.txt"
+cd "$tree"; mkdir -p "$W/logs-$label"
+out=$E/suite-results-$label.txt; : > "$out"
+export W label out
+par=(); fg=()
+for s in "$@"; do case $s in fm-spawn-dispatch-profile|fm-spawn-orca-worktree) fg+=("$s");; *) par+=("$s");; esac; done
+one() { local s=$1 t0=$SECONDS rc; bash tests/$s.test.sh > "$W/logs-$label/$s.log" 2>&1; rc=$?; echo "$rc $((SECONDS-t0))s $s" >> "$out"; }
+export -f one
+printf '%s\n' "${par[@]}" | xargs -r -P 6 -I{} bash -c 'one {}'
+# these two need the pane's foreground process group (they source an interactive shell), so no job or timeout wrapper
+for s in "${fg[@]}"; do one "$s"; done
 touch "$W/done-$label"

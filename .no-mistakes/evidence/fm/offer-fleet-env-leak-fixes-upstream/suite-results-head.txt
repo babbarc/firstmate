@@ -1,23 +1,22 @@
-0 fm-backend-cmux.test.sh
-0 fm-backend-herdr.test.sh
-0 fm-backend-orca.test.sh
-0 fm-backend-paseo.test.sh
-0 fm-backend-rex.test.sh
-0 fm-backend.test.sh
-0 fm-backend-zellij.test.sh
-0 fm-control-relaunch.test.sh
-0 fm-control.test.sh
-0 fm-home-summary-refresh.test.sh
-1 fm-session-lock-ancestry.test.sh
-0 fm-sessionstart-nudge.test.sh
-0 fm-session-start.test.sh
-0 fm-spawn-batch.test.sh
-0 fm-spawn-compact-adviser-disable-remote.test.sh
-137 fm-spawn-dispatch-profile.test.sh
-0 fm-spawn-external-review.test.sh
-137 fm-spawn-orca-worktree.test.sh
-0 fm-spawn-pool-base-freshen.test.sh
-0 fm-task-inbox.test.sh
-0 fm-tasks-axi.test.sh
-0 fm-teardown-endpoint-safety.test.sh
-0 fm-teardown.test.sh
+0 2s fm-backend-cmux
+0 4s fm-backend-paseo
+0 6s fm-test-fixtures
+0 7s fm-backend-zellij
+0 13s fm-backend-rex
+0 20s fm-backend-orca
+0 20s fm-backend
+0 27s fm-backend-herdr
+0 37s fm-home-summary-refresh
+0 3s fm-spawn-batch
+0 42s fm-control
+0 4s fm-spawn-external-review
+0 54s fm-sessionstart-nudge
+1 64s fm-session-lock-ancestry
+0 2s fm-tasks-axi
+0 27s fm-teardown-endpoint-safety
+0 61s fm-spawn-compact-adviser-disable-remote
+0 118s fm-control-relaunch
+0 61s fm-task-inbox
+0 127s fm-spawn-pool-base-freshen
+0 178s fm-session-start
+0 204s fm-teardown

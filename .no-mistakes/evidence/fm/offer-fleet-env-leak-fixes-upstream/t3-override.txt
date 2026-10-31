@@ -1,0 +1,33 @@
+=== HEAD: documented refresh via runner, override names a credential
+FM_TEST_BEGIN 2026-10-31T18:28:35Z tests/fm-backend-t3code-live-e2e.test.sh family=live-harness-optin expected_gate_skip=live-capability
+skip: live: the T3 server named by $W/t3cfg/t3code-token is unreachable
+fm-test-run: gate skip: tests/fm-backend-t3code-live-e2e.test.sh: live: the T3 server named by $W/t3cfg/t3code-token is unreachable
+FM_TEST_END 2026-10-31T18:28:36Z tests/fm-backend-t3code-live-e2e.test.sh exit=0 duration_ms=232 gate_skip=true
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=1 duration_ms=278
+FM_TEST_SUMMARY_FAMILY family=live-harness-optin count=1 duration_ms=232 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-backend-t3code-live-e2e.test.sh duration_ms=232
+exit=0
+=== HEAD: same, direct run
+skip: live: the T3 server named by $W/t3cfg/t3code-token is unreachable
+exit=0
+=== HEAD: requested, override honored in the failure
+not ok - FM_T3CODE_LIVE_E2E was requested but the T3 server named by $W/t3cfg/t3code-token is unreachable
+exit=1
+=== HEAD: no override falls back to checkout config
+skip: live: no T3 credential at $WT/config/t3code-token
+exit=0
+=== HEAD: pr-tools suite requested with override
+not ok - T3 status refused: {"ok":false,"error":{"code":"transport","message":"T3 at http://127.0.0.1:9 is unreachable: TypeError: fetch failed"}}
+exit=1
+=== e07cb38c suites (before the T3 fix): same runner command
+FM_TEST_BEGIN 2026-10-31T18:28:36Z tests/fm-backend-t3code-live-e2e.test.sh family=live-harness-optin expected_gate_skip=live-capability
+skip: live: no T3 credential at $W/prev/config/t3code-token
+fm-test-run: gate skip: tests/fm-backend-t3code-live-e2e.test.sh: live: no T3 credential at $W/prev/config/t3code-token
+FM_TEST_END 2026-10-31T18:28:37Z tests/fm-backend-t3code-live-e2e.test.sh exit=0 duration_ms=144 gate_skip=true
+FM_TEST_SUMMARY total=1 failed=0 skipped_gate=1 duration_ms=192
+FM_TEST_SUMMARY_FAMILY family=live-harness-optin count=1 duration_ms=144 failed=0
+FM_TEST_SLOWEST rank=1 script=tests/fm-backend-t3code-live-e2e.test.sh duration_ms=144
+exit=0
+=== e07cb38c pr-tools requested
+not ok - FM_T3CODE_PR_TOOLS_LIVE was requested but there is no T3 credential at $W/prev/config/t3code-token
+exit=1
