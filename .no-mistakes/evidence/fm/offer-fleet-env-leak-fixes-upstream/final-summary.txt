@@ -1,0 +1,14 @@
+# exit status per suite at acf4f54f (captured with rc=$? directly, no pipe)
+## hosted: real Herdr lab pane, launcher env + decoy home/state exported
+0 fm-test-fixtures (background job on pane tty)
+   0 45s fm-spawn-orca-worktree
+   0 329s fm-spawn-dispatch-profile
+1 fm-session-lock-ancestry - only 'pty-host was not reparented to init'; pid 890 adopts orphans on this host (see orphan-*.txt)
+## clean: launcher env removed
+0 fm-test-fixtures
+0 fm-spawn-dispatch-profile
+0 fm-spawn-orca-worktree (first attempt 1 was nohup masking SIGHUP in the runner)
+1 fm-session-lock-ancestry - same host failure, identical with pre-fix tests/lib.sh
+## PID-1 init namespace (orphans really reach init)
+0 fm-session-lock-ancestry (clean, PID-1 init, unprivileged)
+0 fm-session-lock-ancestry (leaked launcher env, PID-1 init, unprivileged)

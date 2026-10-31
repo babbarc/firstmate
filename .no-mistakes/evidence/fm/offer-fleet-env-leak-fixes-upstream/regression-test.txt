@@ -1,0 +1,7 @@
+== with fix (acf4f54f tests/lib.sh)
+ok - tests/lib.sh clears an inherited launcher environment and honors later exports
+rc=
+== pre-fix tests/lib.sh, same test
+not ok - inherited launcher environment reached a fixture: HERDR_ENV survived tests/lib.sh
+not ok - launcher environment isolation
+rc=

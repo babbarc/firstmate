@@ -1,0 +1,4 @@
+1 fm-session-lock-ancestry (leaked launcher env, PID-1 init)
+1 fm-session-lock-ancestry (clean, PID-1 init)
+0 fm-spawn-orca-worktree (clean, HUP deliverable)
+1 fm-session-lock-ancestry (clean, pre-fix tests/lib.sh)
