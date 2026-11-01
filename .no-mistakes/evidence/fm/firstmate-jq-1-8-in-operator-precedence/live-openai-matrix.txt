@@ -1,0 +1,47 @@
+base  jq-1.8.2  valid                  rc=0 status: error;reason: response is not a rule Choice answer;
+base  jq-1.8.2  beside-other-answer    rc=0 status: error;reason: response is not a rule Choice answer;
+base  jq-1.8.2  answers-object         rc=0 status: error;reason: response is not a rule Choice answer;
+base  jq-1.8.2  two-rule-answers       rc=0 status: error;reason: response is not a rule Choice answer;
+base  jq-1.8.2  refusal                rc=0 status: error;reason: response is not a rule Choice answer;
+base  jq-1.8.2  empty                  rc=0 status: error;reason: response is not a rule Choice answer;
+base  jq-1.8.2  duplicate-values       rc=0 status: error;reason: response is not a rule Choice answer;
+base  jq-1.8.2  not-json               rc=0 status: error;reason: response is not a rule Choice answer;
+base  jq-1.7.1  valid                  rc=0 status: clear;profile: --harness 'claude' --model 'sonnet' --effort 'high';
+base  jq-1.7.1  beside-other-answer    rc=0 status: clear;profile: --harness 'claude' --model 'sonnet' --effort 'high';
+base  jq-1.7.1  answers-object         rc=0 status: error;reason: response is not a rule Choice answer;
+base  jq-1.7.1  two-rule-answers       rc=0 status: error;reason: response is not a rule Choice answer;
+base  jq-1.7.1  refusal                rc=0 status: error;reason: response is not a rule Choice answer;
+base  jq-1.7.1  empty                  rc=0 status: error;reason: response is not a rule Choice answer;
+base  jq-1.7.1  duplicate-values       rc=0 status: error;reason: response is not a rule Choice answer;
+base  jq-1.7.1  not-json               rc=0 status: error;reason: response is not a rule Choice answer;
+head  jq-1.8.2  valid                  rc=0 status: clear;profile: --harness 'claude' --model 'sonnet' --effort 'high';
+head  jq-1.8.2  beside-other-answer    rc=0 status: clear;profile: --harness 'claude' --model 'sonnet' --effort 'high';
+head  jq-1.8.2  answers-object         rc=0 status: error;reason: response is not a rule Choice answer;
+head  jq-1.8.2  two-rule-answers       rc=0 status: error;reason: response is not a rule Choice answer;
+head  jq-1.8.2  refusal                rc=0 status: error;reason: response is not a rule Choice answer;
+head  jq-1.8.2  empty                  rc=0 status: error;reason: response is not a rule Choice answer;
+head  jq-1.8.2  duplicate-values       rc=0 status: error;reason: response is not a rule Choice answer;
+head  jq-1.8.2  not-json               rc=0 status: error;reason: response is not a rule Choice answer;
+head  jq-1.7.1  valid                  rc=0 status: clear;profile: --harness 'claude' --model 'sonnet' --effort 'high';
+head  jq-1.7.1  beside-other-answer    rc=0 status: clear;profile: --harness 'claude' --model 'sonnet' --effort 'high';
+head  jq-1.7.1  answers-object         rc=0 status: error;reason: response is not a rule Choice answer;
+head  jq-1.7.1  two-rule-answers       rc=0 status: error;reason: response is not a rule Choice answer;
+head  jq-1.7.1  refusal                rc=0 status: error;reason: response is not a rule Choice answer;
+head  jq-1.7.1  empty                  rc=0 status: error;reason: response is not a rule Choice answer;
+head  jq-1.7.1  duplicate-values       rc=0 status: error;reason: response is not a rule Choice answer;
+head  jq-1.7.1  not-json               rc=0 status: error;reason: response is not a rule Choice answer;
+
+--- full output head/jq 1.8.2 valid ---
+dispatch-resolve:
+  status: clear
+  model: gpt-6-luna   latency_ms: 18   tokens: 700/5
+  rule: rule_2 (A simple bug fix with a stated root cause.)   confidence: 0.9
+  probabilities: rule_1=0.02 rule_2=0.96 default=0.02
+  note: rule matched
+  candidate: claude:sonnet  provider=claude  -> eligible (quota ranking off: home declares a single shared quota)
+  profile: --harness 'claude' --model 'sonnet' --effort 'high'
+--- server saw ---
+/v1/decisions auth=<lab dummy, redacted>
+["input","model","questions"]
+"gpt-6-luna"
+{"type":"choice","name":"rule"}
