@@ -1,0 +1,89 @@
+=== BEFORE: base 41a47c09 ===
+$ <base>/bin/fm-brief.sh test-scout-probe --scout
+<base>/bin/fm-brief.sh: line 606: POS[1]: unbound variable
+[exit 1]
+
+$ <base>/bin/fm-brief.sh --scout
+<base>/bin/fm-brief.sh: line 397: POS[0]: unbound variable
+[exit 1]
+
+$ <base>/bin/fm-brief.sh ship0 --mode no-mistakes
+<base>/bin/fm-brief.sh: line 606: POS[1]: unbound variable
+[exit 1]
+
+<lab2>/data/ship0
+
+=== AFTER: 026a92dd ===
+$ bin/fm-brief.sh test-scout-probe --scout
+scaffolded: <lab>/data/test-scout-probe/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+
+16:You are in a disposable git worktree of the task repository, at a detached HEAD on a clean default branch.
+unrendered gaps: 0
+
+$ bin/fm-brief.sh s-base --scout --base-branch release/1
+scaffolded: <lab>/data/s-base/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+
+16:You are in a disposable git worktree of the task repository, at a detached HEAD on a clean copy of its base branch.
+17-Base branch: release/1
+
+$ bin/fm-brief.sh s-herdr --scout --herdr-lab
+scaffolded: <lab>/data/s-herdr/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+
+$ bin/fm-brief.sh s-repo myrepo --scout
+scaffolded: <lab>/data/s-repo/brief.md (scout; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+
+16:You are in a disposable git worktree of myrepo, at a detached HEAD on a clean default branch.
+
+$ bin/fm-brief.sh --scout
+error: briefs require a task id as the first positional argument; see fm-brief.sh --help
+[exit 1]
+
+$ bin/fm-brief.sh --mode direct-PR
+error: briefs require a task id as the first positional argument; see fm-brief.sh --help
+[exit 1]
+
+$ bin/fm-brief.sh --mode no-mistakes
+error: briefs require a task id as the first positional argument; see fm-brief.sh --help
+[exit 1]
+
+$ bin/fm-brief.sh --mode local-only
+error: briefs require a task id as the first positional argument; see fm-brief.sh --help
+[exit 1]
+
+$ bin/fm-brief.sh --secondmate --no-projects
+error: briefs require a task id as the first positional argument; see fm-brief.sh --help
+[exit 1]
+
+$ bin/fm-brief.sh
+error: ship briefs require --mode <no-mistakes|direct-PR|local-only>; resolve it at intake from the captain's instruction and the project's registered posture in data/projects.md
+[exit 1]
+
+$ bin/fm-brief.sh ship1 --mode no-mistakes
+error: ship briefs require a repository: fm-brief.sh <task-id> <repo-name> --mode <mode>
+[exit 1]
+
+ls: cannot access '<lab>/data/ship1': No such file or directory
+
+$ bin/fm-brief.sh ship2 repo2 --mode no-mistakes
+scaffolded: <lab>/data/ship2/brief.md (ship, mode=no-mistakes; replace {TASK} and {FIRSTMATE_SPEC})
+[exit 0]
+
+brief.md
+$ bin/fm-brief.sh sm1 --secondmate --no-projects
+scaffolded: <lab>/data/sm1/brief.md (secondmate charter; replace {TASK})
+[exit 0]
+
+brief.md
+$ bin/fm-brief.sh sm2 --secondmate
+error: --secondmate requires at least one project, or --no-projects for a project-less home
+[exit 1]
+
+$ bin/fm-brief.sh test-scout-probe --scout
+error: <lab>/data/test-scout-probe/brief.md already exists
+[exit 1]
+
+data dirs after run: s-base s-herdr ship2 sm1 sm2 s-repo test-scout-probe 

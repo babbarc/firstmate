@@ -1,0 +1,12 @@
+bash-5.3$ bin/fm-spawn.sh lab-scout <lab>/projects/labproj --scout --base-branch release/1 --backend tmux --harness "bash -c 'pwd > <lab>/worker-pwd; git rev-parse --abbrev-ref HEAD > <lab>/worker-branch 2>&1; git rev-parse HEAD >> <lab>/worker-branch; sleep 120'"; echo SPAWN_RC=$?
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+warn: no registry at <lab>/data/projects.md; defaulting labproj to no-mistakes off
+error: treehouse get did not enter an isolated worktree within 60s (last seen '<lab>/projects/labproj': it is the spawning project itself; spawning project '<lab>/projects/labproj'); inspect window primary:fm-lab-scout
+SPAWN_RC=1
+bash-5.3$ 
+bash-5.3$ SHELL=/bin/bash bin/fm-spawn.sh lab-scout2 <lab>/projects/labproj --scout --base-branch release/1 --backend tmux --harness "bash -c 'pwd > <lab>/worker-pwd; git rev-parse HEAD > <lab>/worker-head 2>&1; sleep 90'"; echo SPAWN_RC=$?
+fm-gate-refuse: gate agent lifecycle permitted only against lab home <lab>
+warn: no registry at <lab>/data/projects.md; defaulting labproj to no-mistakes off
+spawned lab-scout2 harness=bash kind=scout window=primary:fm-lab-scout2 worktree=<lab>/th/.treehouse/labproj-107bb4/1/labproj
+SPAWN_RC=0
+bash-5.3$ 
