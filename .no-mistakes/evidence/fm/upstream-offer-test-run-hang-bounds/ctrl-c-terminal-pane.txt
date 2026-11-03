@@ -1,0 +1,7 @@
+bin/fm-test-run.sh --all; echo EXIT=$?
+[yeti@alps repo]$ bin/fm-test-run.sh --all; echo EXIT=$?
+FM_TEST_BEGIN 2026-11-03T19:44:11Z tests/fm-live-hang.test.sh family=unclassified expected_gate_skip=none
+ok - fixture about to wedge
+^Cfm-test-run: FAIL: run interrupted by SIGINT while running tests/fm-live-hang.test.sh; swept 7 leftover fixture process(es)
+EXIT=130
+[yeti@alps repo]$

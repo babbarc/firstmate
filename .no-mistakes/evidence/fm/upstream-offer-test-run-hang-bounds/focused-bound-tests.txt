@@ -1,0 +1,5 @@
+ok - every selection mode bounds each script by default, and 0 opts out
+ok - a tripped per-script bound sweeps descendants that left its process group
+ok - --run-timeout-secs bounds the whole invocation, scripts and selection alike
+ok - an interrupted run leaves none of its script's processes running
+ALL-SELECTED-DONE
